@@ -3,7 +3,10 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JobCard } from "@/components/JobCard";
 import { JsonLd } from "@/components/JsonLd";
+import { PageHero } from "@/components/ui/PageHero";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
+import { getAvatarGradient, getInitials } from "@/lib/gradients";
 import {
   getCompanyBySlug,
   getIndexableCompanySlugs,
@@ -44,9 +47,8 @@ export default async function CompanyPage({ params }: Props) {
   const company = await getCompanyBySlug(slug);
   if (!company || company.jobs.length === 0) notFound();
 
-  const cities = [
-    ...new Set(company.jobs.map((j) => j.city)),
-  ].sort();
+  const gradient = getAvatarGradient(company.name);
+  const cities = Array.from(new Set(company.jobs.map((j) => j.city))).sort();
 
   const jobsByCity = new Map<string, typeof company.jobs>();
   for (const job of company.jobs) {
@@ -65,7 +67,21 @@ export default async function CompanyPage({ params }: Props) {
     <>
       <JsonLd data={breadcrumbJsonLd} />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <PageHero
+        badge="Employeur"
+        title={`Recrutement chez ${company.name}`}
+        subtitle={pluralize(company.jobs.length, "offre active", "offres actives")}
+      >
+        <div className="flex items-center gap-4">
+          <span
+            className={`avatar-gradient h-14 w-14 bg-gradient-to-br ${gradient} text-lg`}
+          >
+            {getInitials(company.name)}
+          </span>
+        </div>
+      </PageHero>
+
+      <div className="page-container py-10">
         <Breadcrumbs
           items={[
             { label: "Accueil", href: "/" },
@@ -74,22 +90,8 @@ export default async function CompanyPage({ params }: Props) {
           ]}
         />
 
-        <div className="flex items-start gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-2xl font-bold text-primary">
-            {company.name.charAt(0)}
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-              Offres d&apos;emploi chez {company.name}
-            </h1>
-            <p className="mt-2 text-muted">
-              {pluralize(company.jobs.length, "offre disponible", "offres disponibles")}
-            </p>
-          </div>
-        </div>
-
         {cities.length > 1 && (
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="mb-8 flex flex-wrap gap-2">
             {cities.map((city) => {
               const cityJob = company.jobs.find((j) => j.city === city);
               const citySlug = cityJob?.location?.slug;
@@ -97,14 +99,18 @@ export default async function CompanyPage({ params }: Props) {
                 <Link
                   key={city}
                   href={`/emplois/${citySlug}`}
-                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-slate-50"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-1.5 text-sm font-medium text-foreground shadow-sm transition-all hover:border-accent/30 hover:shadow-md"
                 >
+                  <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                  </svg>
                   {city}
                 </Link>
               ) : (
                 <span
                   key={city}
-                  className="rounded-full border border-border px-3 py-1 text-sm text-muted"
+                  className="rounded-full border border-border px-4 py-1.5 text-sm text-muted"
                 >
                   {city}
                 </span>
@@ -114,16 +120,14 @@ export default async function CompanyPage({ params }: Props) {
         )}
 
         {cities.length > 1 ? (
-          <div className="mt-10 space-y-12">
-            {[...jobsByCity.entries()].map(([city, jobs]) => (
+          <div className="space-y-14">
+            {Array.from(jobsByCity.entries()).map(([city, jobs]) => (
               <section key={city}>
-                <h2 className="text-xl font-bold text-foreground">
-                  {city}{" "}
-                  <span className="text-base font-normal text-muted">
-                    ({jobs.length})
-                  </span>
-                </h2>
-                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <SectionHeader
+                  title={city}
+                  description={pluralize(jobs.length, "offre", "offres")}
+                />
+                <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   {jobs.map((job) => (
                     <JobCard key={job.id} job={job} />
                   ))}
@@ -132,7 +136,7 @@ export default async function CompanyPage({ params }: Props) {
             ))}
           </div>
         ) : (
-          <div className="mt-8 grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2">
             {company.jobs.map((job) => (
               <JobCard key={job.id} job={job} />
             ))}

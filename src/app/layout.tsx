@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -7,10 +7,11 @@ import { SITE_DESCRIPTION, SITE_LOCALE, SITE_NAME } from "@/lib/constants";
 import { buildOrganizationJsonLd } from "@/lib/seo";
 import "./globals.css";
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-jakarta",
   display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -36,11 +37,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang={SITE_LOCALE}>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${jakarta.variable} font-sans antialiased`}>
         <JsonLd data={buildOrganizationJsonLd()} />
-        <Header />
-        <main className="min-h-[calc(100vh-16rem)]">{children}</main>
-        <Footer />
+        <div className="flex min-h-screen flex-col">
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </div>
       </body>
     </html>
   );

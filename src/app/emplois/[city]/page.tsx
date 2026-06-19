@@ -6,8 +6,12 @@ import { JobCard } from "@/components/JobCard";
 import { JobFilters } from "@/components/JobFilters";
 import { Pagination } from "@/components/Pagination";
 import { JsonLd } from "@/components/JsonLd";
+import { CityCard } from "@/components/ui/CityCard";
+import { PageHero } from "@/components/ui/PageHero";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { MIN_JOBS_FOR_CITY_INDEX, REVALIDATE_SECONDS } from "@/lib/constants";
 import { getCityIntro } from "@/lib/cities";
+import { getCityEmoji } from "@/lib/gradients";
 import {
   getCityJobCount,
   getCompaniesInCity,
@@ -94,7 +98,13 @@ export default async function CityJobsPage({ params, searchParams }: Props) {
     <>
       <JsonLd data={breadcrumbJsonLd} />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <PageHero
+        badge={`${getCityEmoji(citySlug)} ${location.city}`}
+        title={`Offres d'emploi à ${location.city}`}
+        subtitle={pluralize(jobCount, "offre disponible", "offres disponibles")}
+      />
+
+      <div className="page-container py-10">
         <Breadcrumbs
           items={[
             { label: "Accueil", href: "/" },
@@ -103,20 +113,15 @@ export default async function CityJobsPage({ params, searchParams }: Props) {
           ]}
         />
 
-        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-          Offres d&apos;emploi à {location.city}
-        </h1>
-        <p className="mt-2 text-muted">
-          {pluralize(jobCount, "offre disponible", "offres disponibles")}
-        </p>
-
-        <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted">
-          {cityIntro.paragraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
+        <div className="card p-6 sm:p-8">
+          <div className="space-y-4 text-[15px] leading-[1.8] text-muted">
+            {cityIntro.paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-6 card p-4 sm:p-5">
           <Suspense fallback={null}>
             <JobFilters
               cities={[]}
@@ -143,26 +148,33 @@ export default async function CityJobsPage({ params, searchParams }: Props) {
             />
           </>
         ) : (
-          <p className="mt-8 text-center text-muted">
-            Aucune offre ne correspond à vos filtres à {location.city}.
-          </p>
+          <div className="mt-12 flex flex-col items-center rounded-3xl border border-dashed border-border bg-surface py-16 text-center">
+            <span className="text-5xl" aria-hidden="true">🔍</span>
+            <h2 className="mt-4 text-lg font-bold text-foreground">
+              Aucune offre à {location.city}
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              Modifiez vos filtres pour voir plus de résultats.
+            </p>
+          </div>
         )}
 
         {companiesInCity.length > 0 && (
-          <section className="mt-16">
-            <h2 className="text-xl font-bold">
-              Entreprises qui recrutent à {location.city}
-            </h2>
-            <div className="mt-4 flex flex-wrap gap-3">
+          <section className="mt-20">
+            <SectionHeader
+              label="Employeurs"
+              title={`Entreprises qui recrutent à ${location.city}`}
+            />
+            <div className="mt-6 flex flex-wrap gap-2">
               {companiesInCity.map((c) => (
                 <Link
                   key={c.slug}
                   href={`/entreprise/${c.slug}`}
-                  className="rounded-lg border border-border bg-card px-4 py-2 text-sm hover:shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all hover:border-accent/30 hover:shadow-md"
                 >
-                  {c.name}{" "}
-                  <span className="text-muted">
-                    ({c._count.jobs})
+                  {c.name}
+                  <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-bold text-accent">
+                    {c._count.jobs}
                   </span>
                 </Link>
               ))}
@@ -171,20 +183,16 @@ export default async function CityJobsPage({ params, searchParams }: Props) {
         )}
 
         {otherCities.length > 0 && (
-          <section className="mt-12">
-            <h2 className="text-xl font-bold">Autres villes</h2>
-            <div className="mt-4 flex flex-wrap gap-3">
+          <section className="mt-16">
+            <SectionHeader label="Explorer" title="Autres villes" />
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               {otherCities.map((c) => (
-                <Link
+                <CityCard
                   key={c.slug}
-                  href={`/emplois/${c.slug}`}
-                  className="rounded-lg border border-border bg-card px-4 py-2 text-sm hover:shadow-sm"
-                >
-                  {c.city}{" "}
-                  <span className="text-muted">
-                    ({c._count.jobs})
-                  </span>
-                </Link>
+                  city={c.city}
+                  slug={c.slug}
+                  jobCount={c._count.jobs}
+                />
               ))}
             </div>
           </section>

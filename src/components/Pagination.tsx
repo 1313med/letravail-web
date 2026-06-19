@@ -39,43 +39,56 @@ export function Pagination({
   }
 
   return (
-    <nav aria-label="Pagination" className="mt-8 flex items-center justify-center gap-1">
+    <nav
+      aria-label="Pagination"
+      className="mt-10 flex items-center justify-center gap-2"
+    >
       {currentPage > 1 && (
         <Link
           href={buildUrl(currentPage - 1)}
-          className="btn-secondary px-3 py-2"
+          className="btn-secondary !px-4 !py-2.5"
           aria-label="Page précédente"
         >
-          ← Précédent
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+          Précédent
         </Link>
       )}
-      {pages.map((page, i) =>
-        page === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-muted">
-            …
-          </span>
-        ) : (
-          <Link
-            key={page}
-            href={buildUrl(page)}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
-              page === currentPage
-                ? "bg-primary text-white"
-                : "text-muted hover:bg-slate-100"
-            }`}
-            aria-current={page === currentPage ? "page" : undefined}
-          >
-            {page}
-          </Link>
-        )
-      )}
+
+      <div className="flex items-center gap-1">
+        {pages.map((page, i) =>
+          page === "..." ? (
+            <span key={`ellipsis-${i}`} className="px-2 text-muted-light">
+              …
+            </span>
+          ) : (
+            <Link
+              key={page}
+              href={buildUrl(page)}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold transition-all duration-200 ${
+                page === currentPage
+                  ? "bg-gradient-to-r from-accent to-primary-light text-white shadow-accent"
+                  : "text-muted hover:bg-surface hover:text-foreground"
+              }`}
+              aria-current={page === currentPage ? "page" : undefined}
+            >
+              {page}
+            </Link>
+          )
+        )}
+      </div>
+
       {currentPage < totalPages && (
         <Link
           href={buildUrl(currentPage + 1)}
-          className="btn-secondary px-3 py-2"
+          className="btn-secondary !px-4 !py-2.5"
           aria-label="Page suivante"
         >
-          Suivant →
+          Suivant
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
         </Link>
       )}
     </nav>

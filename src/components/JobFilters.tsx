@@ -37,65 +37,86 @@ export function JobFilters({
   const currentContract = searchParams.get("contract") || "";
   const currentTag = searchParams.get("tag") || "";
 
+  const hasActiveFilters =
+    currentCity || currentCompany || currentContract || currentTag;
+
+  function clearAll() {
+    router.push(basePath);
+  }
+
   return (
-    <div className="flex flex-wrap gap-3" role="group" aria-label="Filtres">
-      <select
-        value={currentCity}
-        onChange={(e) => updateFilter("city", e.target.value)}
-        className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
-        aria-label="Filtrer par ville"
-      >
-        <option value="">Toutes les villes</option>
-        {cities.map((c) => (
-          <option key={c.slug} value={c.slug}>
-            {c.city}
-          </option>
-        ))}
-      </select>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Filtres">
+        {cities.length > 0 && (
+          <select
+            value={currentCity}
+            onChange={(e) => updateFilter("city", e.target.value)}
+            className="filter-pill"
+            aria-label="Filtrer par ville"
+          >
+            <option value="">📍 Toutes les villes</option>
+            {cities.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.city}
+              </option>
+            ))}
+          </select>
+        )}
 
-      <select
-        value={currentCompany}
-        onChange={(e) => updateFilter("company", e.target.value)}
-        className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
-        aria-label="Filtrer par entreprise"
-      >
-        <option value="">Toutes les entreprises</option>
-        {companies.map((c) => (
-          <option key={c.slug} value={c.slug}>
-            {c.name}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={currentContract}
-        onChange={(e) => updateFilter("contract", e.target.value)}
-        className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
-        aria-label="Filtrer par type de contrat"
-      >
-        <option value="">Tous les contrats</option>
-        {contractTypes.map((ct) => (
-          <option key={ct} value={ct}>
-            {ct}
-          </option>
-        ))}
-      </select>
-
-      {tags.length > 0 && (
         <select
-          value={currentTag}
-          onChange={(e) => updateFilter("tag", e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
-          aria-label="Filtrer par secteur"
+          value={currentCompany}
+          onChange={(e) => updateFilter("company", e.target.value)}
+          className="filter-pill"
+          aria-label="Filtrer par entreprise"
         >
-          <option value="">Tous les secteurs</option>
-          {tags.map((t) => (
-            <option key={t.slug} value={t.slug}>
-              {t.name}
+          <option value="">🏢 Toutes les entreprises</option>
+          {companies.map((c) => (
+            <option key={c.slug} value={c.slug}>
+              {c.name}
             </option>
           ))}
         </select>
-      )}
+
+        <select
+          value={currentContract}
+          onChange={(e) => updateFilter("contract", e.target.value)}
+          className="filter-pill"
+          aria-label="Filtrer par type de contrat"
+        >
+          <option value="">📋 Tous les contrats</option>
+          {contractTypes.map((ct) => (
+            <option key={ct} value={ct}>
+              {ct}
+            </option>
+          ))}
+        </select>
+
+        {tags.length > 0 && (
+          <select
+            value={currentTag}
+            onChange={(e) => updateFilter("tag", e.target.value)}
+            className="filter-pill"
+            aria-label="Filtrer par secteur"
+          >
+            <option value="">🏷️ Tous les secteurs</option>
+            {tags.map((t) => (
+              <option key={t.slug} value={t.slug}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearAll}
+            className="btn-ghost text-accent"
+          >
+            Effacer les filtres
+          </button>
+        )}
+      </div>
     </div>
   );
 }

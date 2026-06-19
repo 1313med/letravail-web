@@ -3,49 +3,186 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --primary: #0d4f6e;
+  --background: #f6f8fb;
+  --foreground: #0b1220;
+  --primary: #0c4a5e;
+  --primary-dark: #083344;
   --primary-light: #0e7490;
-  --accent: #0891b2;
+  --accent: #14b8a6;
+  --accent-light: #5eead4;
+  --gold: #c9a227;
+  --gold-light: #e8c96a;
   --muted: #64748b;
+  --muted-light: #94a3b8;
   --border: #e2e8f0;
+  --border-light: #f1f5f9;
   --card: #ffffff;
+  --surface: #f8fafc;
+  --ring: rgba(20, 184, 166, 0.35);
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    color: var(--foreground);
+    background: var(--background);
+  }
+
+  ::selection {
+    background: rgba(20, 184, 166, 0.2);
+    color: var(--primary-dark);
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+
+  .bg-dot-pattern {
+    background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(to right, rgba(226, 232, 240, 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 50%, var(--gold-light) 100%);
+  }
+
+  .hero-glow {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(20, 184, 166, 0.18), transparent),
+      radial-gradient(ellipse 50% 40% at 90% 20%, rgba(201, 162, 39, 0.1), transparent),
+      radial-gradient(ellipse 40% 50% at 10% 60%, rgba(14, 116, 144, 0.12), transparent),
+      linear-gradient(180deg, #0b1a2e 0%, #0f2744 40%, #0c4a5e 100%);
+  }
+
+  .glass {
+    @apply border border-white/20 bg-white/10 backdrop-blur-xl;
+  }
+
+  .glass-card {
+    @apply border border-white/60 bg-white/80 shadow-glass backdrop-blur-xl;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.6s ease-out both;
+  }
+
+  .animate-fade-up-delay-1 {
+    animation: fadeUp 0.6s ease-out 0.1s both;
+  }
+
+  .animate-fade-up-delay-2 {
+    animation: fadeUp 0.6s ease-out 0.2s both;
+  }
+
+  .animate-fade-up-delay-3 {
+    animation: fadeUp 0.6s ease-out 0.3s both;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-accent to-primary-light px-6 py-3 text-sm font-semibold text-white shadow-accent transition-all duration-300 hover:-translate-y-0.5 hover:shadow-accent-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:translate-y-0;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-slate-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-6 py-3 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:border-accent/30 hover:bg-surface hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-muted transition-colors duration-200 hover:bg-surface hover:text-foreground;
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold to-gold-light px-6 py-3 text-sm font-semibold text-primary-dark shadow-gold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  .card {
+    @apply rounded-2xl border border-border/80 bg-card shadow-card transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply card hover:-translate-y-1 hover:border-accent/20 hover:shadow-card-hover;
+  }
+
+  .card-interactive {
+    @apply card-hover cursor-pointer;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-border bg-white px-4 py-3.5 text-sm text-foreground shadow-sm transition-all duration-200 placeholder:text-muted-light focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/20;
+  }
+
+  .select-field {
+    @apply input-field appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%2364748b%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27m19 9-7 7-7-7%27/%3E%3C/svg%3E')] bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10;
   }
 
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide;
   }
 
   .badge-contract {
-    @apply badge bg-cyan-50 text-cyan-800 ring-1 ring-inset ring-cyan-200;
+    @apply badge bg-primary/10 text-primary ring-1 ring-inset ring-primary/20;
   }
 
   .badge-remote {
-    @apply badge bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200;
+    @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/80;
   }
 
   .badge-new {
-    @apply badge bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200;
+    @apply badge bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 ring-1 ring-inset ring-amber-200/80;
+  }
+
+  .badge-gold {
+    @apply badge bg-gold/10 text-amber-900 ring-1 ring-inset ring-gold/25;
+  }
+
+  .section-label {
+    @apply text-xs font-bold uppercase tracking-[0.2em] text-accent;
+  }
+
+  .page-container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .avatar-gradient {
+    @apply flex shrink-0 items-center justify-center rounded-xl font-bold text-white shadow-inner;
+  }
+
+  .filter-pill {
+    @apply rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition-all duration-200 hover:border-accent/30 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/20;
+  }
+
+  .link-arrow {
+    @apply inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition-colors hover:text-primary;
+  }
+
+  .prose-job {
+    @apply text-[15px] leading-[1.8] text-foreground/90;
   }
 }
