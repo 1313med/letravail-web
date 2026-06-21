@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Bookmark, MapPin, ArrowUpRight } from "lucide-react";
+import { MapPin, ArrowUpRight, Bookmark } from "lucide-react";
 import { JobListItem } from "@/lib/queries";
 import { getAvatarGradient, getInitials } from "@/lib/gradients";
+import { MagneticWrap, TiltCard, fadeUp, stagger } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 import { excerpt, formatRelativeDate, isNewJob } from "@/lib/utils";
 
@@ -15,105 +16,97 @@ interface FeaturedJobsProps {
 export function FeaturedJobs({ jobs }: FeaturedJobsProps) {
   if (jobs.length === 0) return null;
 
-  const [featured, ...rest] = jobs;
-  const gradient = getAvatarGradient(featured.company);
+  const [featured, second, third, fourth, ...rest] = jobs;
 
   return (
-    <section className="story-section bg-navy-800/40">
-      <div className="container-xl">
-        <div className="flex items-end justify-between gap-6">
-          <div>
-            <p className="section-label">Sélection</p>
-            <h2 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Offres en vedette
-            </h2>
-          </div>
-          <Link href="/emplois" className="btn-ghost hidden sm:inline-flex">
-            Voir tout
-          </Link>
-        </div>
+    <section className="section-dark story-section relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_50%,rgba(55,214,181,0.05),transparent_50%)]" />
+      <div className="container-xl relative">
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="mx-auto max-w-4xl text-center">
+          <motion.p variants={fadeUp} className="section-label">Opportunités</motion.p>
+          <motion.h2 variants={fadeUp} className="display-section mt-6 text-white">
+            Les postes qui
+            <br />
+            <span className="text-slate-muted">méritent votre talent</span>
+          </motion.h2>
+        </motion.div>
 
-        {/* Asymmetric layout — LinkedIn Premium */}
-        <div className="mt-16 grid gap-8 lg:grid-cols-12 lg:gap-10">
-          {/* Hero job — large */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="lg:col-span-7"
-          >
-            <Link
-              href={`/emploi/${featured.slug}`}
-              className="group relative flex h-full min-h-[420px] flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-navy-700/80 to-navy p-8 transition-all duration-500 hover:border-mint/30 hover:shadow-glow-lg sm:p-10"
-            >
-              <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-mint/5 blur-3xl transition-all group-hover:bg-mint/10" />
+        {/* Magazine — full-width hero, offset pair below-right */}
+        <div className="relative mt-10 sm:mt-16 lg:mt-20">
+          <motion.div initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.9 }}>
+            <TiltCard>
+              <Link href={`/emploi/${featured.slug}`} className="group relative flex min-h-[360px] flex-col justify-end overflow-hidden rounded-2xl sm:min-h-[440px] sm:rounded-[2rem] lg:min-h-[560px] lg:max-w-[85%]">
+                <div className={cn("absolute inset-0 bg-gradient-to-br opacity-95", getAvatarGradient(featured.company))} />
+                <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/50 to-transparent" />
+                <motion.div animate={{ x: [0, 20, 0], y: [0, -15, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute -right-20 top-20 h-64 w-64 rounded-full bg-mint/15 blur-[80px]" />
 
-              <div className="relative">
-                <div className="flex items-start justify-between">
-                  <span className={cn("flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br text-xl font-bold text-white", gradient)}>
-                    {getInitials(featured.company)}
-                  </span>
+                <div className="relative p-6 sm:p-10 lg:p-16">
                   {isNewJob(featured.createdAt) && (
-                    <span className="badge-mint">Nouveau</span>
+                    <motion.span animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }} className="badge-mint inline-block">
+                      Nouveau
+                    </motion.span>
                   )}
+                  <h3 className="mt-4 max-w-3xl text-2xl font-extrabold leading-[1.05] text-white sm:mt-8 sm:text-4xl lg:text-6xl">{featured.title}</h3>
+                  <p className="mt-3 text-lg text-white/75 sm:mt-4 sm:text-2xl">{featured.company}</p>
+                  <p className="mt-4 max-w-xl text-sm text-slate-text/80 line-clamp-2 sm:mt-6 sm:text-lg">{excerpt(featured.description, 160)}</p>
+                  <div className="mt-8 flex flex-wrap gap-4">
+                    <span className="flex items-center gap-2 text-white/90"><MapPin className="h-4 w-4 text-mint" />{featured.city}</span>
+                    {featured.contractType && <span className="badge-mint">{featured.contractType}</span>}
+                  </div>
                 </div>
-                <h3 className="mt-8 text-2xl font-bold leading-tight text-white transition-colors group-hover:text-mint sm:text-3xl">
-                  {featured.title}
-                </h3>
-                <p className="mt-3 text-lg text-slate-text">{featured.company}</p>
-              </div>
-
-              <div className="relative mt-8">
-                <p className="line-clamp-3 text-slate-muted">{excerpt(featured.description, 200)}</p>
-                <div className="mt-6 flex flex-wrap items-center gap-3">
-                  <span className="flex items-center gap-1.5 text-sm text-slate-text">
-                    <MapPin className="h-4 w-4 text-mint" />
-                    {featured.city}
-                  </span>
-                  {featured.contractType && <span className="badge-mint">{featured.contractType}</span>}
-                  {featured.remote && <span className="badge-navy">Remote</span>}
-                </div>
-                <div className="mt-6 flex items-center justify-between">
-                  <time className="text-sm text-slate-dim">{formatRelativeDate(featured.publishedAt || featured.createdAt)}</time>
-                  <span className="flex items-center gap-1 text-sm font-semibold text-mint opacity-0 transition-opacity group-hover:opacity-100">
-                    Voir l&apos;offre <ArrowUpRight className="h-4 w-4" />
-                  </span>
-                </div>
-              </div>
-            </Link>
+              </Link>
+            </TiltCard>
           </motion.div>
 
-          {/* Side list — editorial */}
-          <div className="flex flex-col gap-4 lg:col-span-5">
-            {rest.slice(0, 4).map((job, i) => (
+          {/* Floating offset cards */}
+          <div className="mt-8 grid gap-6 lg:-mt-24 lg:ml-auto lg:max-w-[55%] lg:grid-cols-2 lg:gap-5">
+            {[second, third, fourth].filter(Boolean).map((job, i) => (
               <motion.div
-                key={job.id}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                key={job!.id}
+                initial={{ opacity: 0, y: 40, x: i === 1 ? 20 : 0 }}
+                whileInView={{ opacity: 1, y: 0, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+                transition={{ delay: 0.2 + i * 0.1 }}
+                className={cn(i === 2 && "lg:col-span-2 lg:max-w-[70%]")}
               >
-                <Link
-                  href={`/emploi/${job.slug}`}
-                  className="group flex items-center gap-5 rounded-2xl border border-white/5 bg-white/[0.03] p-5 transition-all duration-300 hover:border-mint/20 hover:bg-white/[0.06]"
-                >
-                  <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-sm font-bold text-white", getAvatarGradient(job.company))}>
-                    {getInitials(job.company)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="truncate font-semibold text-white group-hover:text-mint transition-colors">{job.title}</h4>
-                    <p className="truncate text-sm text-slate-muted">{job.company} · {job.city}</p>
-                  </div>
-                  <button type="button" className="shrink-0 rounded-xl p-2 text-slate-dim opacity-0 transition-all hover:bg-white/5 hover:text-mint group-hover:opacity-100" aria-label="Sauvegarder">
-                    <Bookmark className="h-4 w-4" />
-                  </button>
-                </Link>
+                <TiltCard>
+                  <Link href={`/emploi/${job!.slug}`} className="group flex flex-col justify-between rounded-2xl border border-white/10 bg-navy-700/80 p-5 backdrop-blur-xl transition-shadow hover:shadow-glow sm:rounded-3xl sm:p-8">
+                    <div>
+                      <span className={cn("inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-sm font-bold text-white", getAvatarGradient(job!.company))}>
+                        {getInitials(job!.company)}
+                      </span>
+                      <h4 className="mt-6 text-xl font-bold text-white group-hover:text-mint sm:text-2xl">{job!.title}</h4>
+                      <p className="mt-2 text-slate-muted">{job!.company}</p>
+                    </div>
+                    <div className="mt-6 flex items-center justify-between">
+                      <span className="text-sm text-slate-text">{job!.city}</span>
+                      <ArrowUpRight className="h-4 w-4 text-mint opacity-0 group-hover:opacity-100" />
+                    </div>
+                  </Link>
+                </TiltCard>
               </motion.div>
             ))}
-            <Link href="/emplois" className="mt-2 text-center text-sm font-semibold text-mint hover:text-mint-glow lg:hidden">
-              Voir toutes les offres →
-            </Link>
+          </div>
+
+          {rest.length > 0 && (
+            <div className="mt-16 space-y-0 overflow-hidden rounded-3xl border border-white/8">
+              {rest.slice(0, 2).map((job, i) => (
+                <Link key={job.id} href={`/emploi/${job.slug}`} className={cn("group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-white/[0.04] sm:gap-6 sm:px-8 sm:py-5", i > 0 && "border-t border-white/6")}>
+                  <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold text-white", getAvatarGradient(job.company))}>{getInitials(job.company)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-white group-hover:text-mint">{job.title}</p>
+                    <p className="truncate text-sm text-slate-muted">{job.company} · {formatRelativeDate(job.publishedAt || job.createdAt)}</p>
+                  </div>
+                  <Bookmark className="h-4 w-4 text-slate-dim opacity-0 group-hover:opacity-100" />
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-16 text-center">
+            <MagneticWrap>
+              <Link href="/emplois" className="btn-mint !px-14 !py-5 !text-lg">Explorer toutes les offres</Link>
+            </MagneticWrap>
           </div>
         </div>
       </div>

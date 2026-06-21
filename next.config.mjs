@@ -8,6 +8,19 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      { source: "/offres-emploi-maroc", destination: "/emplois", permanent: true },
+      { source: "/offres-emploi-casablanca", destination: "/emplois/casablanca-morocco", permanent: true },
+      { source: "/offres-emploi-rabat", destination: "/emplois/rabat-morocco", permanent: true },
+      { source: "/offres-emploi-marrakech", destination: "/emplois/marrakech-morocco", permanent: true },
+      { source: "/offres-emploi-tanger", destination: "/emplois/tanger-morocco", permanent: true },
+      { source: "/offres-emploi-fes", destination: "/emplois/fes-morocco", permanent: true },
+      { source: "/offres-emploi-agadir", destination: "/emplois/agadir-morocco", permanent: true },
+      { source: "/offres-emploi-tech", destination: "/emplois?tag=tech", permanent: true },
+      { source: "/offres-emploi-finance", destination: "/emplois?tag=finance", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

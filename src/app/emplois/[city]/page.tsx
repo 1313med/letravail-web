@@ -1,18 +1,29 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
-import { PremiumJobCard } from "@/components/premium/JobCard";
-import { CityGrid, CityHero } from "@/components/premium/CityVisuals";
-import { JobFilters } from "@/components/JobFilters";
-import { Pagination } from "@/components/Pagination";
 import { JsonLd } from "@/components/JsonLd";
+import { JobsDiscoveryShell } from "@/components/jobs/JobsDiscoveryShell";
+import { JOBS_FAQ_ITEMS } from "@/lib/jobs-faq";
+import { CityGrid } from "@/components/premium/CityVisuals";
 import { MIN_JOBS_FOR_CITY_INDEX, REVALIDATE_SECONDS } from "@/lib/constants";
 import { getCityIntro } from "@/lib/cities";
+import { parseFiltersFromSearchParams } from "@/lib/jobs-discovery";
 import {
-  getCityJobCount, getCompaniesInCity, getCompaniesForFilter,
-  getContractTypes, getJobs, getLocationBySlug, getOtherCities, getTags, getTopCitySlugs,
+  getCityJobCount,
+  getCompaniesInCity,
+  getContractTypes,
+  getJobs,
+  getLocationBySlug,
+  getOtherCities,
+  getTags,
+  getTopCitySlugs,
 } from "@/lib/queries";
-import { buildBreadcrumbJsonLd, buildCanonical, buildPageMetadata } from "@/lib/seo";
+import {
+  buildBreadcrumbJsonLd,
+  buildCanonical,
+  buildFaqJsonLd,
+  buildJobListJsonLd,
+  buildPageMetadata,
+} from "@/lib/seo";
 
 export const revalidate = REVALIDATE_SECONDS;
 
@@ -30,8 +41,8 @@ export async function generateMetadata({ params }: Props) {
   if (!location) return { title: "Ville introuvable" };
   const count = await getCityJobCount(params.city);
   return buildPageMetadata({
-    title: `Emploi ${location.city} (${count} postes)`,
-    description: `${count} offres d'emploi à ${location.city}, Maroc. CDI, CDD, stages — mises à jour automatiquement.`,
+    title: `Emploi ${location.city} — ${count} offres`,
+    description: `${count} offres d'emploi à ${location.city}, Maroc. CDI, CDD, stages et alternance — mises à jour automatiquement.`,
     path: `/emplois/${params.city}`,
     noindex: count < MIN_JOBS_FOR_CITY_INDEX,
   });
@@ -41,67 +52,95 @@ export default async function CityJobsPage({ params, searchParams: sp }: Props) 
   const location = await getLocationBySlug(params.city);
   if (!location || location._count.jobs === 0) notFound();
 
-  const filters = { city: params.city, company: sp.company, contract: sp.contract, tag: sp.tag, page: sp.page ? parseInt(sp.page, 10) : 1 };
-  const [jobsResult, companiesInCity, otherCities, contractTypes, allCompanies, tags] = await Promise.all([
-    getJobs(filters), getCompaniesInCity(params.city), getOtherCities(params.city),
-    getContractTypes(), getCompaniesForFilter(), getTags(),
-  ]);
+  const filters = parseFiltersFromSearchParams(sp, params.city);
+  const [jobsResult, companiesInCity, otherCities, contractTypes, tags] =
+    await Promise.all([
+      getJobs(filters),
+      getCompaniesInCity(params.city),
+      getOtherCities(params.city),
+      getContractTypes(),
+      getTags(),
+    ]);
+
   const cityIntro = getCityIntro(location.city, params.city);
+  const contractList = contractTypes.length > 0
+    ? contractTypes
+    : ["CDI", "CDD", "Stage", "Freelance", "Alternance"];
+
+  const intro = (
+    <div className="mb-10 overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] p-6 sm:p-8">
+      {cityIntro.paragraphs.map((p, i) => (
+        <p key={i} className="mb-3 text-[15px] leading-relaxed text-slate-text last:mb-0">{p}</p>
+      ))}
+    </div>
+  );
+
+  const footerSections = (
+    <>
+      {companiesInCity.length > 0 && (
+        <section className="mt-16 border-t border-white/5 pt-12">
+          <h2 className="text-xl font-bold text-white">Entreprises à {location.city}</h2>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {companiesInCity.map((c) => (
+              <Link key={c.slug} href={`/entreprise/${c.slug}`} className="badge-navy hover:border-mint/30">
+                {c.name} ({c._count.jobs})
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+      {otherCities.length > 0 && (
+        <section className="mt-16 border-t border-white/5 pt-12">
+          <h2 className="text-xl font-bold text-white">Autres villes</h2>
+          <div className="mt-8">
+            <CityGrid cities={otherCities} />
+          </div>
+        </section>
+      )}
+    </>
+  );
 
   return (
     <>
       <JsonLd data={buildBreadcrumbJsonLd([
         { name: "Accueil", url: buildCanonical("/") },
+        { name: "Offres", url: buildCanonical("/emplois") },
         { name: location.city, url: buildCanonical(`/emplois/${params.city}`) },
       ])} />
-
-      <CityHero city={location.city} slug={params.city} jobCount={location._count.jobs} />
-
-      <div className="container-xl pb-24 pt-12">
-        <div className="card-glass p-8">
-          {cityIntro.paragraphs.map((p, i) => (
-            <p key={i} className="mb-4 text-[15px] leading-[1.8] text-slate-text last:mb-0">{p}</p>
-          ))}
-        </div>
-
-        <div className="mt-6 card-glass p-5">
-          <Suspense fallback={null}>
-            <JobFilters cities={[]} companies={allCompanies} contractTypes={contractTypes} tags={tags} basePath={`/emplois/${params.city}`} />
-          </Suspense>
-        </div>
-
-        {jobsResult.jobs.length > 0 ? (
-          <>
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {jobsResult.jobs.map((job) => <PremiumJobCard key={job.id} job={job} />)}
-            </div>
-            <Pagination currentPage={jobsResult.page} totalPages={jobsResult.totalPages} basePath={`/emplois/${params.city}`} searchParams={sp} />
-          </>
-        ) : (
-          <p className="mt-12 text-center text-slate-muted">Aucune offre ne correspond à vos filtres.</p>
+      <JsonLd
+        data={buildJobListJsonLd(
+          jobsResult.jobs,
+          `Offres d'emploi à ${location.city}`,
+          buildCanonical(`/emplois/${params.city}`)
         )}
+      />
+      <JsonLd data={buildFaqJsonLd(JOBS_FAQ_ITEMS.map((f) => ({ question: f.q, answer: f.a })))} />
 
-        {companiesInCity.length > 0 && (
-          <section className="mt-20">
-            <h2 className="text-xl font-bold">Entreprises à {location.city}</h2>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {companiesInCity.map((c) => (
-                <Link key={c.slug} href={`/entreprise/${c.slug}`} className="badge-navy hover:border-mint/30">
-                  {c.name} ({c._count.jobs})
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+      <JobsDiscoveryShell
+        jobs={jobsResult.jobs}
+        total={jobsResult.total}
+        page={jobsResult.page}
+        totalPages={jobsResult.totalPages}
+        searchParams={sp}
+        cities={[]}
+        contractTypes={contractList}
+        tags={tags}
+        basePath={`/emplois/${params.city}`}
+        heroTitle={`Emploi à ${location.city}`}
+        heroSubtitle={`Explorez les opportunités professionnelles à ${location.city} et trouvez votre prochain chapitre.`}
+        heroLabel={location.city}
+        hideCityFilter
+        fixedCity={params.city}
+        breadcrumbs={[
+          { label: "Accueil", href: "/" },
+          { label: "Offres", href: "/emplois" },
+          { label: location.city },
+        ]}
+        intro={intro}
+      />
 
-        {otherCities.length > 0 && (
-          <section className="mt-20">
-            <h2 className="text-xl font-bold">Autres villes</h2>
-            <div className="mt-8">
-              <CityGrid cities={otherCities} />
-            </div>
-          </section>
-        )}
+      <div className="section-dark container-xl pb-24">
+        {footerSections}
       </div>
     </>
   );

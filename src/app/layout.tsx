@@ -36,7 +36,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <JsonLd data={buildOrganizationJsonLd()} />
         <PremiumHeader />
-        <main className="pb-20 lg:pb-0">{children}</main>
+        <main className="pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
         <PremiumFooter />
         <MobileBottomNav />
         <AiAssistant />

@@ -54,3 +54,7 @@ export const LOGO_CATEGORIES = [
   "Assurances",
   "Secteur public",
 ] as const;
+
+export function getCompanyLogo(slug: string): CompanyLogo | undefined {
+  return MOROCCAN_COMPANY_LOGOS.find((c) => c.slug === slug);
+}

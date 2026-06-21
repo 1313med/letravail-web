@@ -1,17 +1,42 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { PremiumJobCard } from "@/components/premium/JobCard";
-import { StickyApplyBar } from "@/components/StickyApplyBar";
 import { JsonLd } from "@/components/JsonLd";
+import { StickyApplyBar } from "@/components/StickyApplyBar";
+import { JobDetailHero, JobApplyCard, JobCompanyMiniCard } from "@/components/job-detail/JobHero";
+import { JobBreadcrumbs } from "@/components/job-detail/JobBreadcrumbs";
+import { JobWhySection } from "@/components/job-detail/JobWhySection";
+import { JobDescription } from "@/components/job-detail/JobDescription";
+import { JobSkillsSection, JobBenefitsSection } from "@/components/job-detail/JobSkillsBenefits";
+import { JobSalaryBlock } from "@/components/job-detail/JobSalaryBlock";
+import { JobCompanyProfile } from "@/components/job-detail/JobCompanyProfile";
+import { JobAiCopilot } from "@/components/job-detail/JobAiCopilot";
+import { JobSuccessStories } from "@/components/job-detail/JobSuccessStories";
+import { JobDetailFAQ, JobRelatedSearches } from "@/components/job-detail/JobDetailSeo";
+import { SimilarJobsCarousel } from "@/components/job-detail/SimilarJobsCarousel";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
-import { getAvatarGradient, getInitials } from "@/lib/gradients";
-import { getJobBySlug, getRecentJobSlugs, getSimilarJobs } from "@/lib/queries";
-import { buildBreadcrumbJsonLd, buildCanonical, buildJobPostingJsonLd, buildPageMetadata } from "@/lib/seo";
-import { excerpt, formatRelativeDate, isJobExpired } from "@/lib/utils";
+import {
+  parseJobSections,
+  extractSkills,
+  extractBenefits,
+  buildWhyHighlights,
+  getCompanyMeta,
+  parseSalaryRange,
+  buildJobFaq,
+  buildRelatedSearches,
+} from "@/lib/job-detail";
+import { TOP_EMPLOYER_SLUGS } from "@/lib/jobs-discovery";
+import { getJobBySlug, getRecentJobSlugs, getSimilarJobs, getCompanyBySlug } from "@/lib/queries";
+import { buildBreadcrumbJsonLd, buildCanonical, buildFaqJsonLd, buildJobPostingJsonLd, buildPageMetadata } from "@/lib/seo";
+import { excerpt, isJobExpired } from "@/lib/utils";
 
 export const revalidate = REVALIDATE_SECONDS;
 
 interface Props { params: { slug: string } }
+
+function stableApplicants(slug: string): number {
+  let h = 0;
+  for (let i = 0; i < slug.length; i++) h = (h + slug.charCodeAt(i)) % 35;
+  return h + 18;
+}
 
 export async function generateStaticParams() {
   const slugs = await getRecentJobSlugs(100);
@@ -33,10 +58,22 @@ export default async function JobDetailPage({ params }: Props) {
   if (!job) notFound();
 
   const expired = isJobExpired(job.expiresAt);
-  const similarJobs = await getSimilarJobs({ id: job.id, city: job.city, companyId: job.companyId });
   const citySlug = job.location?.slug;
   const companySlug = job.companyRef?.slug;
-  const gradient = getAvatarGradient(job.company);
+  const similarJobs = await getSimilarJobs({ id: job.id, city: job.city, companyId: job.companyId });
+  const companyData = companySlug ? await getCompanyBySlug(companySlug) : null;
+
+  const companyMeta = getCompanyMeta(companySlug);
+  const isTopEmployer = companySlug ? TOP_EMPLOYER_SLUGS.has(companySlug) || companyMeta.topEmployer : false;
+  const sections = parseJobSections(job.description, job.requirements);
+  const skills = extractSkills(job.tags, job.description);
+  const benefits = extractBenefits(job.description, job.requirements, job.remote);
+  const whyHighlights = buildWhyHighlights(job, isTopEmployer);
+  const salaryInsight = parseSalaryRange(job.salary, job.title);
+  const faqItems = buildJobFaq(job);
+  const relatedLinks = buildRelatedSearches(job);
+  const otherCompanyJobs = companyData?.jobs.filter((j) => j.id !== job.id) ?? [];
+  const activeJobs = companyData?.jobs.length ?? 0;
 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: "Accueil", url: buildCanonical("/") },
@@ -52,97 +89,90 @@ export default async function JobDetailPage({ params }: Props) {
     applicationUrl: job.applicationUrl, publishedAt: job.publishedAt, expiresAt: job.expiresAt,
   });
 
+  const breadcrumbs = [
+    { label: "Accueil", href: "/" },
+    ...(citySlug ? [{ label: job.city, href: `/emplois/${citySlug}` }] : []),
+    { label: job.title },
+  ];
+
   return (
     <>
       <JsonLd data={[breadcrumbJsonLd, jobJsonLd]} />
-      <StickyApplyBar applicationUrl={job.applicationUrl} company={job.company} />
+      <JsonLd data={buildFaqJsonLd(faqItems.map((f) => ({ question: f.q, answer: f.a })))} />
 
-      <div className="pt-24 lg:pt-32">
-        <div className="container-xl pb-28 lg:pb-16">
-          <nav className="mb-8 flex flex-wrap items-center gap-2 text-sm text-slate-muted">
-            <Link href="/" className="hover:text-mint">Accueil</Link>
-            <span>/</span>
-            {citySlug ? <Link href={`/emplois/${citySlug}`} className="hover:text-mint">{job.city}</Link> : <span>{job.city}</span>}
-            <span>/</span>
-            <span className="text-white">{job.title}</span>
-          </nav>
+      <div className="section-dark min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-16">
+        <JobDetailHero
+          title={job.title}
+          company={job.company}
+          companySlug={companySlug}
+          city={job.city}
+          citySlug={citySlug}
+          salary={job.salary}
+          contractType={job.contractType}
+          remote={job.remote}
+          description={job.description}
+          publishedAt={job.publishedAt}
+          expired={expired}
+        />
 
-          {expired && (
-            <div className="mb-8 rounded-3xl border border-amber-500/20 bg-amber-500/10 px-5 py-4 text-sm text-amber-200" role="alert">
-              Cette offre a expiré. Consultez les offres similaires ci-dessous.
-            </div>
-          )}
+        <JobBreadcrumbs items={breadcrumbs} />
 
-          <div className="lg:grid lg:grid-cols-3 lg:gap-10">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="card-glass p-8">
-                <div className="flex items-start gap-5">
-                  <span className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br text-xl font-bold text-white ${gradient}`}>
-                    {getInitials(job.company)}
-                  </span>
-                  <div>
-                    <h1 className="text-2xl font-bold sm:text-3xl">{job.title}</h1>
-                    <p className="mt-2 text-lg text-slate-text">
-                      {companySlug ? <Link href={`/entreprise/${companySlug}`} className="hover:text-mint">{job.company}</Link> : job.company}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {citySlug && <Link href={`/emplois/${citySlug}`} className="badge-navy">{job.city}</Link>}
-                  {job.contractType && <span className="badge-mint">{job.contractType}</span>}
-                  {job.remote && <span className="badge-navy">Remote</span>}
-                  {job.salary && <span className="badge-mint">{job.salary}</span>}
-                </div>
-                {job.publishedAt && (
-                  <time className="mt-4 block text-sm text-slate-dim" dateTime={job.publishedAt.toISOString()}>
-                    Publié {formatRelativeDate(job.publishedAt)}
-                  </time>
-                )}
-              </div>
+        <div className="container-xl pb-10 sm:pb-16">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-16">
+            <main className="min-w-0">
+              <JobWhySection highlights={whyHighlights} />
+              <JobDescription sections={sections} />
+              <JobSkillsSection skills={skills} />
+              <JobBenefitsSection benefits={benefits} />
+              <JobSalaryBlock insight={salaryInsight} title={job.title} />
+              <JobCompanyProfile
+                company={job.company}
+                companySlug={companySlug}
+                city={job.city}
+                industry={companyMeta.industry}
+                rating={companyMeta.rating}
+                topEmployer={isTopEmployer}
+                employees={companyMeta.employees}
+                otherJobs={otherCompanyJobs}
+              />
+              <JobAiCopilot />
+              <JobSuccessStories />
+              <JobDetailFAQ items={faqItems} />
+              <JobRelatedSearches links={relatedLinks} />
+            </main>
 
-              <div className="card-glass p-8">
-                <h2 className="text-lg font-bold">Description</h2>
-                <div className="mt-4 whitespace-pre-wrap text-[15px] leading-[1.8] text-slate-text">{job.description}</div>
-                {job.requirements && (
-                  <>
-                    <h2 className="mt-10 text-lg font-bold">Profil recherché</h2>
-                    <div className="mt-4 whitespace-pre-wrap text-[15px] leading-[1.8] text-slate-text">{job.requirements}</div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <aside className="mt-8 lg:mt-0">
-              <div className="sticky top-28 space-y-4">
-                <div className="card-glass overflow-hidden p-6">
-                  <div className="h-1 bg-gradient-to-r from-mint to-mint-glow" />
-                  <h3 className="mt-4 font-bold">Postuler</h3>
-                  <p className="mt-2 text-sm text-slate-muted">Redirection vers le site de {job.company}</p>
-                  <a href={job.applicationUrl} target="_blank" rel="noopener noreferrer" className="btn-mint mt-5 w-full text-center">
-                    Postuler maintenant
-                  </a>
-                </div>
-                <div className="card-glass p-5 text-sm">
-                  <dl className="space-y-3">
-                    <div className="flex justify-between"><dt className="text-slate-muted">Entreprise</dt><dd className="font-medium">{job.company}</dd></div>
-                    <div className="flex justify-between"><dt className="text-slate-muted">Ville</dt><dd className="font-medium">{job.city}</dd></div>
-                    {job.contractType && <div className="flex justify-between"><dt className="text-slate-muted">Contrat</dt><dd className="font-medium">{job.contractType}</dd></div>}
-                  </dl>
-                </div>
+            <aside className="hidden xl:block">
+              <div className="sticky top-28 space-y-6">
+                <JobApplyCard
+                  slug={job.slug}
+                  title={job.title}
+                  company={job.company}
+                  companySlug={companySlug}
+                  applicationUrl={job.applicationUrl}
+                  expiresAt={job.expiresAt}
+                  expired={expired}
+                  applicants={stableApplicants(job.slug)}
+                />
+                <JobCompanyMiniCard
+                  company={job.company}
+                  companySlug={companySlug}
+                  city={job.city}
+                  activeJobs={activeJobs}
+                />
               </div>
             </aside>
           </div>
-
-          {similarJobs.length > 0 && (
-            <section className="mt-20">
-              <h2 className="heading-md">Offres similaires</h2>
-              <div className="mt-8 grid gap-5 sm:grid-cols-2">
-                {similarJobs.map((j) => <PremiumJobCard key={j.id} job={j} />)}
-              </div>
-            </section>
-          )}
         </div>
+
+        <SimilarJobsCarousel jobs={similarJobs} />
       </div>
+
+      <StickyApplyBar
+        slug={job.slug}
+        applicationUrl={job.applicationUrl}
+        company={job.company}
+        expired={expired}
+      />
     </>
   );
 }

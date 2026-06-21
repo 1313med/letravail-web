@@ -122,6 +122,43 @@ export function buildJobPostingJsonLd(job: JobForSchema): object {
   return jsonLd;
 }
 
+export function buildJobListJsonLd(
+  jobs: { slug: string; title: string }[],
+  listName: string,
+  listUrl: string
+): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: listName,
+    url: listUrl,
+    numberOfItems: jobs.length,
+    itemListElement: jobs.map((job, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: job.title,
+      url: buildCanonical(`/emploi/${job.slug}`),
+    })),
+  };
+}
+
+export function buildFaqJsonLd(
+  items: { question: string; answer: string }[]
+): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+}
+
 export function buildOrganizationJsonLd(): object {
   return {
     "@context": "https://schema.org",

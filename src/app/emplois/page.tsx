@@ -1,20 +1,21 @@
-import { Suspense } from "react";
-import Link from "next/link";
-import { PremiumJobCard } from "@/components/premium/JobCard";
-import { JobFilters } from "@/components/JobFilters";
-import { Pagination } from "@/components/Pagination";
 import { JsonLd } from "@/components/JsonLd";
+import { JobsDiscoveryShell } from "@/components/jobs/JobsDiscoveryShell";
+import { JOBS_FAQ_ITEMS } from "@/lib/jobs-faq";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
+import { parseFiltersFromSearchParams } from "@/lib/jobs-discovery";
 import {
   getCitiesForFilter,
-  getCompaniesForFilter,
   getContractTypes,
   getJobs,
   getTags,
-  getTotalJobCount,
 } from "@/lib/queries";
-import { buildBreadcrumbJsonLd, buildCanonical, buildPageMetadata } from "@/lib/seo";
-import { pluralize } from "@/lib/utils";
+import {
+  buildBreadcrumbJsonLd,
+  buildCanonical,
+  buildFaqJsonLd,
+  buildJobListJsonLd,
+  buildPageMetadata,
+} from "@/lib/seo";
 
 export const revalidate = REVALIDATE_SECONDS;
 
@@ -25,73 +26,64 @@ interface Props {
 export async function generateMetadata({ searchParams }: Props) {
   const page = searchParams.page ? parseInt(searchParams.page, 10) : 1;
   const path = page > 1 ? `/emplois?page=${page}` : "/emplois";
-  return buildPageMetadata({
-    title: "Offres d'emploi au Maroc",
-    description: "Parcourez toutes les offres d'emploi au Maroc. Filtrez par ville, entreprise, contrat et secteur.",
-    path,
-  });
+  const q = searchParams.q;
+  const title = q
+    ? `Offres d'emploi : ${q} au Maroc`
+    : "Offres d'emploi au Maroc";
+  const description = q
+    ? `Trouvez des offres d'emploi pour « ${q} » au Maroc. CDI, CDD, stages — filtres par ville, contrat et salaire.`
+    : "Découvrez les meilleures opportunités professionnelles du royaume. Parcourez des centaines d'offres mises à jour au Maroc.";
+
+  return buildPageMetadata({ title, description, path });
 }
 
 export default async function AllJobsPage({ searchParams: sp }: Props) {
-  const filters = {
-    q: sp.q,
-    city: sp.city,
-    company: sp.company,
-    contract: sp.contract,
-    tag: sp.tag,
-    page: sp.page ? parseInt(sp.page, 10) : 1,
-  };
+  const filters = parseFiltersFromSearchParams(sp);
 
-  const [jobsResult, totalJobs, cities, companies, contractTypes, tags] =
-    await Promise.all([
-      getJobs(filters),
-      getTotalJobCount(),
-      getCitiesForFilter(),
-      getCompaniesForFilter(),
-      getContractTypes(),
-      getTags(),
-    ]);
+  const [jobsResult, cities, contractTypes, tags] = await Promise.all([
+    getJobs(filters),
+    getCitiesForFilter(),
+    getContractTypes(),
+    getTags(),
+  ]);
+
+  const contractList = contractTypes.length > 0
+    ? contractTypes
+    : ["CDI", "CDD", "Stage", "Freelance", "Alternance"];
 
   return (
     <>
       <JsonLd data={buildBreadcrumbJsonLd([
         { name: "Accueil", url: buildCanonical("/") },
-        { name: "Offres", url: buildCanonical("/emplois") },
+        { name: "Offres d'emploi", url: buildCanonical("/emplois") },
       ])} />
+      <JsonLd
+        data={buildJobListJsonLd(
+          jobsResult.jobs,
+          "Offres d'emploi au Maroc",
+          buildCanonical("/emplois")
+        )}
+      />
+      <JsonLd data={buildFaqJsonLd(JOBS_FAQ_ITEMS.map((f) => ({ question: f.q, answer: f.a })))} />
 
-      <div className="pt-24 lg:pt-32">
-        <div className="container-xl pb-24">
-          <p className="section-label">Recherche</p>
-          <h1 className="heading-lg mt-4">Offres d&apos;emploi au Maroc</h1>
-          <p className="body-md mt-4">
-            {pluralize(totalJobs, "offre", "offres")}
-            {filters.q && <> · « {filters.q} »</>}
-          </p>
-
-          <div className="mt-10 card-glass p-5">
-            <Suspense fallback={null}>
-              <JobFilters cities={cities} companies={companies} contractTypes={contractTypes} tags={tags} basePath="/emplois" />
-            </Suspense>
-          </div>
-
-          {jobsResult.jobs.length > 0 ? (
-            <>
-              <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {jobsResult.jobs.map((job) => (
-                  <PremiumJobCard key={job.id} job={job} />
-                ))}
-              </div>
-              <Pagination currentPage={jobsResult.page} totalPages={jobsResult.totalPages} basePath="/emplois" searchParams={sp} />
-            </>
-          ) : (
-            <div className="mt-16 rounded-3xl border border-dashed border-white/10 py-20 text-center">
-              <p className="text-lg font-semibold">Aucune offre trouvée</p>
-              <p className="mt-2 text-slate-muted">Modifiez vos filtres pour élargir la recherche.</p>
-              <Link href="/emplois" className="btn-ghost mt-6 inline-flex">Effacer les filtres</Link>
-            </div>
-          )}
-        </div>
-      </div>
+      <JobsDiscoveryShell
+        jobs={jobsResult.jobs}
+        total={jobsResult.total}
+        page={jobsResult.page}
+        totalPages={jobsResult.totalPages}
+        searchParams={sp}
+        cities={cities}
+        contractTypes={contractList}
+        tags={tags}
+        basePath="/emplois"
+        heroTitle="Offres d'emploi au Maroc"
+        heroSubtitle="Découvrez les meilleures opportunités professionnelles du royaume."
+        heroLabel="Explorer"
+        breadcrumbs={[
+          { label: "Accueil", href: "/" },
+          { label: "Offres d'emploi" },
+        ]}
+      />
     </>
   );
 }

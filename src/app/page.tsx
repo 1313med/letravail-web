@@ -1,6 +1,5 @@
 import { CinematicHero } from "@/components/home/CinematicHero";
 import { TrustMarquee } from "@/components/home/TrustMarquee";
-import { LogoMarquee } from "@/components/home/LogoMarquee";
 import { CityCarousel } from "@/components/home/CityCarousel";
 import { FeaturedJobs } from "@/components/home/FeaturedJobs";
 import { EmployerShowcase } from "@/components/home/EmployerShowcase";
@@ -21,9 +20,9 @@ import { buildPageMetadata } from "@/lib/seo";
 export const revalidate = REVALIDATE_SECONDS;
 
 export const metadata = buildPageMetadata({
-  title: "Le futur de l'emploi au Maroc",
+  title: "Votre prochain chapitre commence ici",
   description:
-    "Des milliers d'opportunités mises à jour automatiquement. Casablanca, Rabat, Marrakech, Tanger — banques, télécoms, tech et secteur public.",
+    "Découvrez les meilleures opportunités du royaume. Casablanca, Rabat, Marrakech, Tanger — banques, télécoms, tech et secteur public.",
   path: "/",
 });
 
@@ -39,19 +38,33 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* Moment 1 — Dark cinematic hero */}
       <CinematicHero cities={cities} />
       <TrustMarquee
         totalJobs={totalJobs}
         cityCount={topCities.length}
         companyCount={topCompanies.length}
       />
-      <LogoMarquee />
+
+      {/* Moment 2 — Light cities */}
       <CityCarousel cities={topCities} />
+
+      {/* Moment 3 — Dark featured jobs */}
       <FeaturedJobs jobs={latestJobs} />
+
+      {/* Moment 4 — Light employers */}
       <EmployerShowcase companies={topCompanies} />
+
+      {/* Moment 5 — Gradient salaries */}
       <SalaryInsights />
+
+      {/* Moment 6 — Glass AI */}
       <AiCareerBlock />
+
+      {/* Moment 7 — White testimonials */}
       <TestimonialsGallery />
+
+      {/* Moment 8 — Dark finale */}
       <FinalCta />
     </>
   );

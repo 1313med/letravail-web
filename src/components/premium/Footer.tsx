@@ -6,52 +6,61 @@ export function PremiumFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-white/5 bg-navy">
-      <div className="container-xl py-20">
-        <div className="grid gap-12 lg:grid-cols-12">
-          <div className="lg:col-span-5">
-            <Link href="/" className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-mint text-sm font-bold text-navy">LT</span>
-              <span className="text-xl font-bold">Letravail<span className="text-mint">.ma</span></span>
-            </Link>
-            <p className="mt-6 max-w-sm text-sm leading-relaxed text-slate-muted">
-              Le futur de l&apos;emploi au Maroc. Des milliers d&apos;opportunités mises à jour automatiquement.
-            </p>
-          </div>
+    <footer className="relative overflow-hidden bg-[#040E1A] text-white">
+      {/* Luxury top gradient line */}
+      <div className="h-px bg-gradient-to-r from-transparent via-mint/50 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(55,214,181,0.06),transparent_60%)]" />
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-7">
-            <div>
-              <p className="section-label !text-[10px]">Villes</p>
-              <ul className="mt-4 space-y-3">
-                {TOP_CITIES.slice(0, 6).map((city) => (
-                  <li key={city}>
-                    <Link href={`/emplois/${slugify(city)}`} className="text-sm text-slate-muted transition-colors hover:text-mint">
-                      Emploi {city}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="section-label !text-[10px]">Plateforme</p>
-              <ul className="mt-4 space-y-3">
-                <li><Link href="/emplois" className="text-sm text-slate-muted hover:text-mint">Offres</Link></li>
-                <li><Link href="/salaires" className="text-sm text-slate-muted hover:text-mint">Salaires</Link></li>
-                <li><Link href="/a-propos" className="text-sm text-slate-muted hover:text-mint">À propos</Link></li>
-              </ul>
-            </div>
-            <div>
-              <p className="section-label !text-[10px]">Contact</p>
-              <a href="mailto:contact@letravail.ma" className="mt-4 inline-block text-sm font-medium text-mint hover:text-mint-glow">
-                contact@letravail.ma
-              </a>
-            </div>
+      <div className="container-xl relative py-24 lg:py-28">
+        {/* Brand block — full width */}
+        <div className="max-w-2xl">
+          <Link href="/" className="group inline-flex items-center gap-4">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-mint text-sm font-bold text-navy transition-transform group-hover:scale-105">LT</span>
+            <span className="text-2xl font-extrabold tracking-tight">
+              Letravail<span className="text-mint">.ma</span>
+            </span>
+          </Link>
+          <p className="mt-6 text-lg leading-relaxed text-slate-muted">
+            La plateforme d&apos;emploi la plus ambitieuse du Maroc.
+            <br />
+            Conçue pour ceux qui visent l&apos;excellence.
+          </p>
+        </div>
+
+        {/* Links grid — asymmetric columns */}
+        <div className="mt-20 grid gap-12 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-4 lg:col-start-7">
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-mint/70">Villes</p>
+            <ul className="mt-6 space-y-4">
+              {TOP_CITIES.slice(0, 6).map((city) => (
+                <li key={city}>
+                  <Link href={`/emplois/${slugify(city)}-morocco`} className="text-[15px] text-slate-muted transition-colors hover:text-white">
+                    Emploi {city}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="lg:col-span-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-mint/70">Plateforme</p>
+            <ul className="mt-6 space-y-4">
+              <li><Link href="/emplois" className="text-[15px] text-slate-muted hover:text-white">Offres d&apos;emploi</Link></li>
+              <li><Link href="/salaires" className="text-[15px] text-slate-muted hover:text-white">Salaires</Link></li>
+              <li><Link href="/a-propos" className="text-[15px] text-slate-muted hover:text-white">À propos</Link></li>
+              <li><Link href="/mentions-legales" className="text-[15px] text-slate-muted hover:text-white">Mentions légales</Link></li>
+            </ul>
+          </div>
+          <div className="lg:col-span-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-mint/70">Contact</p>
+            <a href="mailto:contact@letravail.ma" className="mt-6 inline-block text-[15px] font-semibold text-mint hover:text-mint-glow">
+              contact@letravail.ma
+            </a>
           </div>
         </div>
 
-        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-white/5 pt-8 sm:flex-row">
-          <p className="text-xs text-slate-dim">© {year} Letravail.ma</p>
-          <p className="text-xs text-slate-dim">Conçu au Maroc 🇲🇦</p>
+        <div className="mt-24 flex flex-col items-start justify-between gap-6 border-t border-white/6 pt-10 sm:flex-row sm:items-center">
+          <p className="text-sm text-slate-dim">© {year} Letravail.ma — Tous droits réservés</p>
+          <p className="text-sm text-slate-dim">Conçu avec passion au Maroc 🇲🇦</p>
         </div>
       </div>
     </footer>

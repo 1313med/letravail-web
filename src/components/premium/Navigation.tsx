@@ -8,13 +8,13 @@ export function PremiumHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-navy/80 backdrop-blur-2xl">
-      <div className="container-xl flex h-16 items-center justify-between lg:h-20">
-        <Link href="/" className="group flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-mint text-sm font-bold text-navy transition-transform group-hover:scale-105">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-navy/90 backdrop-blur-2xl pt-[env(safe-area-inset-top)]">
+      <div className="container-xl flex h-14 items-center justify-between sm:h-16 lg:h-20">
+        <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-mint text-xs font-bold text-navy transition-transform group-hover:scale-105 sm:h-9 sm:w-9 sm:rounded-2xl sm:text-sm">
             LT
           </span>
-          <span className="text-lg font-bold tracking-tight">
+          <span className="text-base font-bold tracking-tight text-white sm:text-lg">
             Letravail<span className="text-mint">.ma</span>
           </span>
         </Link>
@@ -48,12 +48,12 @@ export function PremiumHeader() {
       </div>
 
       {open && (
-        <nav className="border-t border-white/5 bg-navy-800/95 p-4 md:hidden">
-          <div className="flex flex-col gap-2">
-            <Link href="/emplois" className="rounded-2xl px-4 py-3 text-slate-text hover:bg-white/5" onClick={() => setOpen(false)}>Offres</Link>
-            <Link href="/salaires" className="rounded-2xl px-4 py-3 text-slate-text hover:bg-white/5" onClick={() => setOpen(false)}>Salaires</Link>
-            <Link href="/a-propos" className="rounded-2xl px-4 py-3 text-slate-text hover:bg-white/5" onClick={() => setOpen(false)}>À propos</Link>
-            <Link href="/emplois" className="btn-mint mt-2 text-center" onClick={() => setOpen(false)}>Explorer</Link>
+        <nav className="border-t border-white/5 bg-navy-900/98 p-4 shadow-2xl md:hidden">
+          <div className="flex flex-col gap-1">
+            <Link href="/emplois" className="rounded-2xl px-4 py-3.5 text-base font-medium text-white hover:bg-white/5" onClick={() => setOpen(false)}>Offres</Link>
+            <Link href="/salaires" className="rounded-2xl px-4 py-3.5 text-base font-medium text-white hover:bg-white/5" onClick={() => setOpen(false)}>Salaires</Link>
+            <Link href="/a-propos" className="rounded-2xl px-4 py-3.5 text-base font-medium text-white hover:bg-white/5" onClick={() => setOpen(false)}>À propos</Link>
+            <Link href="/emplois" className="btn-mint mt-3 w-full text-center" onClick={() => setOpen(false)}>Explorer les offres</Link>
           </div>
         </nav>
       )}
@@ -94,7 +94,7 @@ export function AiAssistant() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="fixed bottom-24 right-5 z-50 lg:bottom-8">
+    <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-40 sm:right-5 lg:bottom-8">
       {expanded && (
         <div className="mb-4 w-72 animate-fade-up rounded-3xl border border-white/10 bg-navy-800/95 p-5 shadow-glass backdrop-blur-2xl">
           <p className="text-sm font-semibold text-white">Assistant Carrière IA</p>
