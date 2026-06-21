@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 48" role="img" aria-label="MASEN">
+    <circle cx="20" cy="24" r="14" fill="#F39200"/>
+    <text x="20" y="28" text-anchor="middle" fill="#FFF" font-family="system-ui,sans-serif" font-size="8" font-weight="800">☀</text>
+    <text x="40" y="30" fill="#F39200" font-family="system-ui,sans-serif" font-size="14" font-weight="800">MASEN</text>
+  </svg>

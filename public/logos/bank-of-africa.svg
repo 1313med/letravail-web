@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="Bank of Africa">
+    <path d="M8 36 Q20 8 32 36" fill="none" stroke="#00549F" stroke-width="4"/>
+    <path d="M18 36 Q30 8 42 36" fill="none" stroke="#00549F" stroke-width="4" opacity="0.5"/>
+    <text x="50" y="30" fill="#00549F" font-family="system-ui,sans-serif" font-size="12" font-weight="700">Bank of Africa</text>
+  </svg>

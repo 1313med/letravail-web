@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" role="img" aria-label="Attijariwafa Bank">
+    <circle cx="22" cy="24" r="14" fill="none" stroke="#F39200" stroke-width="3"/>
+    <path d="M22 10 A14 14 0 0 1 22 38" fill="none" stroke="#F39200" stroke-width="3"/>
+    <text x="44" y="22" fill="#F39200" font-family="system-ui,sans-serif" font-size="11" font-weight="700">Attijariwafa</text>
+    <text x="44" y="36" fill="#FFFFFF" font-family="system-ui,sans-serif" font-size="10" font-weight="500">bank</text>
+  </svg>

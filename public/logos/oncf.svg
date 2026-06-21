@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 48" role="img" aria-label="ONCF">
+    <rect x="4" y="14" width="32" height="20" rx="4" fill="#E30613"/>
+    <text x="20" y="28" text-anchor="middle" fill="#FFF" font-family="system-ui,sans-serif" font-size="10" font-weight="800">ONCF</text>
+    <text x="44" y="28" fill="#E30613" font-family="system-ui,sans-serif" font-size="12" font-weight="700">ONCF</text>
+  </svg>

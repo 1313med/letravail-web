@@ -1,10 +1,9 @@
 import { Suspense } from "react";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { JobCard } from "@/components/JobCard";
+import Link from "next/link";
+import { PremiumJobCard } from "@/components/premium/JobCard";
 import { JobFilters } from "@/components/JobFilters";
 import { Pagination } from "@/components/Pagination";
 import { JsonLd } from "@/components/JsonLd";
-import { PageHero } from "@/components/ui/PageHero";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
 import {
   getCitiesForFilter,
@@ -14,11 +13,7 @@ import {
   getTags,
   getTotalJobCount,
 } from "@/lib/queries";
-import {
-  buildBreadcrumbJsonLd,
-  buildCanonical,
-  buildPageMetadata,
-} from "@/lib/seo";
+import { buildBreadcrumbJsonLd, buildCanonical, buildPageMetadata } from "@/lib/seo";
 import { pluralize } from "@/lib/utils";
 
 export const revalidate = REVALIDATE_SECONDS;
@@ -28,21 +23,16 @@ interface Props {
 }
 
 export async function generateMetadata({ searchParams }: Props) {
-  const sp = searchParams;
-  const page = sp.page ? parseInt(sp.page, 10) : 1;
+  const page = searchParams.page ? parseInt(searchParams.page, 10) : 1;
   const path = page > 1 ? `/emplois?page=${page}` : "/emplois";
-
   return buildPageMetadata({
-    title: "Toutes les offres d'emploi au Maroc",
-    description:
-      "Parcourez toutes les offres d'emploi au Maroc. Filtrez par ville, entreprise, type de contrat et secteur. Mises à jour automatiquement.",
+    title: "Offres d'emploi au Maroc",
+    description: "Parcourez toutes les offres d'emploi au Maroc. Filtrez par ville, entreprise, contrat et secteur.",
     path,
   });
 }
 
-export default async function AllJobsPage({ searchParams }: Props) {
-  const sp = searchParams;
-
+export default async function AllJobsPage({ searchParams: sp }: Props) {
   const filters = {
     q: sp.q,
     city: sp.city,
@@ -62,77 +52,45 @@ export default async function AllJobsPage({ searchParams }: Props) {
       getTags(),
     ]);
 
-  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
-    { name: "Accueil", url: buildCanonical("/") },
-    { name: "Offres d'emploi", url: buildCanonical("/emplois") },
-  ]);
-
   return (
     <>
-      <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={buildBreadcrumbJsonLd([
+        { name: "Accueil", url: buildCanonical("/") },
+        { name: "Offres", url: buildCanonical("/emplois") },
+      ])} />
 
-      <PageHero
-        badge={`${pluralize(totalJobs, "offre", "offres")} au Maroc`}
-        title="Toutes les offres d'emploi"
-        subtitle={
-          filters.q
-            ? `Résultats pour « ${filters.q} »`
-            : "Parcourez et filtrez les opportunités dans tout le royaume."
-        }
-      />
+      <div className="pt-24 lg:pt-32">
+        <div className="container-xl pb-24">
+          <p className="section-label">Recherche</p>
+          <h1 className="heading-lg mt-4">Offres d&apos;emploi au Maroc</h1>
+          <p className="body-md mt-4">
+            {pluralize(totalJobs, "offre", "offres")}
+            {filters.q && <> · « {filters.q} »</>}
+          </p>
 
-      <div className="page-container py-10">
-        <Breadcrumbs
-          items={[
-            { label: "Accueil", href: "/" },
-            { label: "Offres d'emploi" },
-          ]}
-        />
-
-        <div className="card p-4 sm:p-5">
-          <Suspense fallback={null}>
-            <JobFilters
-              cities={cities}
-              companies={companies}
-              contractTypes={contractTypes}
-              tags={tags}
-              basePath="/emplois"
-            />
-          </Suspense>
-        </div>
-
-        <p className="mt-6 text-sm font-medium text-muted">
-          {pluralize(jobsResult.total, "résultat", "résultats")}
-          {jobsResult.totalPages > 1 && (
-            <> · Page {jobsResult.page} sur {jobsResult.totalPages}</>
-          )}
-        </p>
-
-        {jobsResult.jobs.length > 0 ? (
-          <>
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              {jobsResult.jobs.map((job) => (
-                <JobCard key={job.id} job={job} />
-              ))}
-            </div>
-            <Pagination
-              currentPage={jobsResult.page}
-              totalPages={jobsResult.totalPages}
-              basePath="/emplois"
-              searchParams={sp}
-            />
-          </>
-        ) : (
-          <div className="mt-12 flex flex-col items-center rounded-3xl border border-dashed border-border bg-surface py-16 text-center">
-            <span className="text-5xl" aria-hidden="true">🔍</span>
-            <h2 className="mt-4 text-lg font-bold text-foreground">
-              Aucune offre trouvée
-            </h2>
-            <p className="mt-2 max-w-sm text-sm text-muted">
-              Essayez de modifier vos filtres ou élargissez votre recherche.
-            </p>
+          <div className="mt-10 card-glass p-5">
+            <Suspense fallback={null}>
+              <JobFilters cities={cities} companies={companies} contractTypes={contractTypes} tags={tags} basePath="/emplois" />
+            </Suspense>
           </div>
-        )}
+
+          {jobsResult.jobs.length > 0 ? (
+            <>
+              <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {jobsResult.jobs.map((job) => (
+                  <PremiumJobCard key={job.id} job={job} />
+                ))}
+              </div>
+              <Pagination currentPage={jobsResult.page} totalPages={jobsResult.totalPages} basePath="/emplois" searchParams={sp} />
+            </>
+          ) : (
+            <div className="mt-16 rounded-3xl border border-dashed border-white/10 py-20 text-center">
+              <p className="text-lg font-semibold">Aucune offre trouvée</p>
+              <p className="mt-2 text-slate-muted">Modifiez vos filtres pour élargir la recherche.</p>
+              <Link href="/emplois" className="btn-ghost mt-6 inline-flex">Effacer les filtres</Link>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

@@ -9,63 +9,68 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#f6f8fb",
-        foreground: "#0b1220",
-        primary: {
-          DEFAULT: "#0c4a5e",
-          dark: "#083344",
-          light: "#0e7490",
+        navy: {
+          DEFAULT: "#06172F",
+          800: "#071B35",
+          700: "#0B2648",
+          600: "#0F3058",
         },
-        accent: {
-          DEFAULT: "#14b8a6",
-          light: "#5eead4",
+        mint: {
+          DEFAULT: "#37D6B5",
+          glow: "#5EF2D6",
+          dim: "#2AB89A",
         },
-        gold: {
-          DEFAULT: "#c9a227",
-          light: "#e8c96a",
+        slate: {
+          text: "#D9E6F3",
+          muted: "#91A4B7",
+          dim: "#6B8299",
         },
-        muted: {
-          DEFAULT: "#64748b",
-          light: "#94a3b8",
-        },
-        border: {
-          DEFAULT: "#e2e8f0",
-          light: "#f1f5f9",
-        },
-        card: "#ffffff",
-        surface: "#f8fafc",
       },
       fontFamily: {
-        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
-        display: ["var(--font-jakarta)", "system-ui", "sans-serif"],
-      },
-      boxShadow: {
-        card: "0 1px 3px rgba(11, 18, 32, 0.04), 0 4px 16px rgba(11, 18, 32, 0.06)",
-        "card-hover":
-          "0 4px 12px rgba(11, 18, 32, 0.06), 0 12px 40px rgba(20, 184, 166, 0.1)",
-        glass: "0 8px 32px rgba(11, 18, 32, 0.08)",
-        glow: "0 0 40px rgba(20, 184, 166, 0.15)",
-        accent: "0 4px 14px rgba(20, 184, 166, 0.25)",
-        "accent-lg": "0 8px 24px rgba(20, 184, 166, 0.35)",
-        gold: "0 4px 14px rgba(201, 162, 39, 0.2)",
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        "2xl": "1rem",
-        "3xl": "1.25rem",
-        "4xl": "1.5rem",
+        "3xl": "24px",
+        "4xl": "32px",
+      },
+      boxShadow: {
+        glow: "0 0 60px rgba(55, 214, 181, 0.15)",
+        "glow-lg": "0 0 100px rgba(55, 214, 181, 0.25)",
+        glass: "0 8px 32px rgba(0, 0, 0, 0.3)",
+        card: "0 4px 24px rgba(0, 0, 0, 0.2)",
+        "card-hover": "0 12px 48px rgba(55, 214, 181, 0.12)",
       },
       animation: {
-        "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        shimmer: "shimmer 2s linear infinite",
+        aurora: "aurora 8s ease-in-out infinite alternate",
+        float: "float 6s ease-in-out infinite",
+        "pulse-glow": "pulseGlow 3s ease-in-out infinite",
+        "fade-up": "fadeUp 0.8s ease-out both",
+        "fade-up-1": "fadeUp 0.8s ease-out 0.1s both",
+        "fade-up-2": "fadeUp 0.8s ease-out 0.2s both",
+        "fade-up-3": "fadeUp 0.8s ease-out 0.3s both",
+        twinkle: "twinkle 4s ease-in-out infinite",
       },
       keyframes: {
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
+        aurora: {
+          "0%": { transform: "translateX(-10%) rotate(-2deg)", opacity: "0.4" },
+          "100%": { transform: "translateX(10%) rotate(2deg)", opacity: "0.7" },
         },
-      },
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-12px)" },
+        },
+        pulseGlow: {
+          "0%, 100%": { opacity: "0.4" },
+          "50%": { opacity: "0.8" },
+        },
+        fadeUp: {
+          from: { opacity: "0", transform: "translateY(24px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        twinkle: {
+          "0%, 100%": { opacity: "0.3" },
+          "50%": { opacity: "1" },
+        },
       },
     },
   },

@@ -7,12 +7,7 @@ interface PaginationProps {
   searchParams?: Record<string, string | undefined>;
 }
 
-export function Pagination({
-  currentPage,
-  totalPages,
-  basePath,
-  searchParams = {},
-}: PaginationProps) {
+export function Pagination({ currentPage, totalPages, basePath, searchParams = {} }: PaginationProps) {
   if (totalPages <= 1) return null;
 
   function buildUrl(page: number) {
@@ -27,11 +22,7 @@ export function Pagination({
 
   const pages: (number | "...")[] = [];
   for (let i = 1; i <= totalPages; i++) {
-    if (
-      i === 1 ||
-      i === totalPages ||
-      (i >= currentPage - 2 && i <= currentPage + 2)
-    ) {
+    if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
       pages.push(i);
     } else if (pages[pages.length - 1] !== "...") {
       pages.push("...");
@@ -39,57 +30,28 @@ export function Pagination({
   }
 
   return (
-    <nav
-      aria-label="Pagination"
-      className="mt-10 flex items-center justify-center gap-2"
-    >
+    <nav aria-label="Pagination" className="mt-12 flex items-center justify-center gap-2">
       {currentPage > 1 && (
-        <Link
-          href={buildUrl(currentPage - 1)}
-          className="btn-secondary !px-4 !py-2.5"
-          aria-label="Page précédente"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
-          Précédent
-        </Link>
+        <Link href={buildUrl(currentPage - 1)} className="btn-ghost !px-4 !py-2.5">← Préc.</Link>
       )}
-
-      <div className="flex items-center gap-1">
-        {pages.map((page, i) =>
-          page === "..." ? (
-            <span key={`ellipsis-${i}`} className="px-2 text-muted-light">
-              …
-            </span>
-          ) : (
-            <Link
-              key={page}
-              href={buildUrl(page)}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold transition-all duration-200 ${
-                page === currentPage
-                  ? "bg-gradient-to-r from-accent to-primary-light text-white shadow-accent"
-                  : "text-muted hover:bg-surface hover:text-foreground"
-              }`}
-              aria-current={page === currentPage ? "page" : undefined}
-            >
-              {page}
-            </Link>
-          )
-        )}
-      </div>
-
+      {pages.map((page, i) =>
+        page === "..." ? (
+          <span key={`e-${i}`} className="px-2 text-slate-dim">…</span>
+        ) : (
+          <Link
+            key={page}
+            href={buildUrl(page)}
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
+              page === currentPage ? "bg-mint text-navy" : "text-slate-muted hover:bg-white/5 hover:text-white"
+            }`}
+            aria-current={page === currentPage ? "page" : undefined}
+          >
+            {page}
+          </Link>
+        )
+      )}
       {currentPage < totalPages && (
-        <Link
-          href={buildUrl(currentPage + 1)}
-          className="btn-secondary !px-4 !py-2.5"
-          aria-label="Page suivante"
-        >
-          Suivant
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-          </svg>
-        </Link>
+        <Link href={buildUrl(currentPage + 1)} className="btn-ghost !px-4 !py-2.5">Suiv. →</Link>
       )}
     </nav>
   );
