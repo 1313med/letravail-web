@@ -1,7 +1,7 @@
 import { CinematicHero } from "@/components/home/CinematicHero";
 import { TrustMarquee } from "@/components/home/TrustMarquee";
 import { CityCarousel } from "@/components/home/CityCarousel";
-import { FeaturedJobs } from "@/components/home/FeaturedJobs";
+import { FeaturedJobsSection } from "@/components/home/FeaturedJobsSection";
 import { EmployerShowcase } from "@/components/home/EmployerShowcase";
 import { SalaryInsights } from "@/components/home/SalaryInsights";
 import { AiCareerBlock } from "@/components/home/AiCareerBlock";
@@ -10,7 +10,6 @@ import { FinalCta } from "@/components/home/FinalCta";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
 import {
   getCitiesForFilter,
-  getLatestJobs,
   getTopCities,
   getTopCompanies,
   getTotalJobCount,
@@ -27,14 +26,12 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function HomePage() {
-  const [totalJobs, latestJobs, topCities, topCompanies, cities] =
-    await Promise.all([
-      getTotalJobCount(),
-      getLatestJobs(8),
-      getTopCities(12),
-      getTopCompanies(12),
-      getCitiesForFilter(),
-    ]);
+  const [totalJobs, topCities, topCompanies, cities] = await Promise.all([
+    getTotalJobCount(),
+    getTopCities(12),
+    getTopCompanies(12),
+    getCitiesForFilter(),
+  ]);
 
   return (
     <>
@@ -50,7 +47,7 @@ export default async function HomePage() {
       <CityCarousel cities={topCities} />
 
       {/* Moment 3 — Dark featured jobs */}
-      <FeaturedJobs jobs={latestJobs} />
+      <FeaturedJobsSection />
 
       {/* Moment 4 — Light employers */}
       <EmployerShowcase companies={topCompanies} />

@@ -39,7 +39,7 @@ function stableApplicants(slug: string): number {
 }
 
 export async function generateStaticParams() {
-  const slugs = await getRecentJobSlugs(100);
+  const slugs = await getRecentJobSlugs(500);
   return slugs.map((slug) => ({ slug }));
 }
 

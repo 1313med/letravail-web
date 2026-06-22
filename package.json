@@ -9,7 +9,9 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
-    "db:pull": "prisma db pull"
+    "db:pull": "prisma db pull",
+    "db:backfill-published": "node scripts/backfill-published-at.mjs",
+    "db:check-jobs": "node scripts/check-jobs.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

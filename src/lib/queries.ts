@@ -3,7 +3,6 @@ import { prisma } from "./db";
 import {
   JOBS_PER_PAGE,
   MIN_JOBS_FOR_CITY_INDEX,
-  TOP_CITIES,
 } from "./constants";
 import { DISCOVERY_EXPERIENCE_LEVELS } from "./jobs-discovery";
 
@@ -117,6 +116,11 @@ const jobListSelect = {
   tags: { select: { tag: { select: { name: true, slug: true } } } },
 } satisfies Prisma.JobSelect;
 
+/** Newest jobs first — createdAt is always set; publishedAt may be null for LinkedIn imports */
+const jobListOrderBy: Prisma.JobOrderByWithRelationInput[] = [
+  { createdAt: "desc" },
+];
+
 function mapJobRow(job: {
   tags: { tag: { name: string; slug: string } }[];
 } & Omit<JobListItem, "tags">): JobListItem {
@@ -134,7 +138,7 @@ export async function getJobs(filters: JobFilters = {}) {
     prisma.job.findMany({
       where,
       select: jobListSelect,
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      orderBy: jobListOrderBy,
       skip: (page - 1) * JOBS_PER_PAGE,
       take: JOBS_PER_PAGE,
     }),
@@ -171,7 +175,7 @@ export async function getSimilarJobs(job: {
       ],
     },
     select: jobListSelect,
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: jobListOrderBy,
     take: 6,
   });
   return rows.map(mapJobRow);
@@ -183,7 +187,7 @@ export async function getCompanyBySlug(slug: string) {
     include: {
       jobs: {
         select: jobListSelect,
-        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        orderBy: jobListOrderBy,
       },
     },
   });
@@ -237,10 +241,34 @@ export async function getTopCompanies(limit = 12) {
 export async function getLatestJobs(limit = 20) {
   const rows = await prisma.job.findMany({
     select: jobListSelect,
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: jobListOrderBy,
     take: limit,
   });
   return rows.map(mapJobRow);
+}
+
+export async function getRandomJobs(limit = 8) {
+  const picks = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT id FROM (
+      SELECT DISTINCT ON (COALESCE("companyId", LOWER(TRIM(company)))) id
+      FROM jobs
+      ORDER BY COALESCE("companyId", LOWER(TRIM(company))), RANDOM()
+    ) AS diverse
+    ORDER BY RANDOM()
+    LIMIT ${limit}
+  `;
+  if (picks.length === 0) return [];
+
+  const rows = await prisma.job.findMany({
+    where: { id: { in: picks.map((p) => p.id) } },
+    select: jobListSelect,
+  });
+
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return picks
+    .map((p) => byId.get(p.id))
+    .filter((row): row is NonNullable<typeof row> => row != null)
+    .map(mapJobRow);
 }
 
 export async function getTotalJobCount() {
@@ -312,7 +340,7 @@ export async function getOtherCities(currentSlug: string, limit = 8) {
 export async function getAllJobSlugs(limit = 5000) {
   return prisma.job.findMany({
     select: { slug: true },
-    orderBy: { publishedAt: "desc" },
+    orderBy: { createdAt: "desc" },
     take: limit,
   });
 }
@@ -334,23 +362,24 @@ export async function getIndexableCompanySlugs() {
   return companies.map((c) => c.slug);
 }
 
-export async function getRecentJobSlugs(limit = 100) {
+export async function getRecentJobSlugs(limit = 500) {
   const jobs = await prisma.job.findMany({
     select: { slug: true },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: jobListOrderBy,
     take: limit,
   });
   return jobs.map((j) => j.slug);
 }
 
-export async function getTopCitySlugs() {
-  return TOP_CITIES.map((c) =>
-    c
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-  );
+export async function getTopCitySlugs(limit = 20) {
+  const cities = await prisma.location.findMany({
+    select: { slug: true, _count: { select: { jobs: true } } },
+    orderBy: { jobs: { _count: "desc" } },
+    take: limit,
+  });
+  return cities
+    .filter((c) => c._count.jobs > 0)
+    .map((c) => c.slug);
 }
 
 export async function getCitiesForFilter() {
@@ -373,7 +402,7 @@ export async function getJobsByCityGrouped(companySlug: string) {
   const jobs = await prisma.job.findMany({
     where: { companyRef: { slug: companySlug } },
     select: { ...jobListSelect, city: true },
-    orderBy: [{ city: "asc" }, { publishedAt: "desc" }],
+    orderBy: [{ city: "asc" }, { createdAt: "desc" }],
   });
 
   const grouped = new Map<string, JobListItem[]>();

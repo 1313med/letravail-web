@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     revalidatePath("/emploi/[slug]", "page");
     revalidatePath("/emplois/[city]", "page");
     revalidatePath("/entreprise/[slug]", "page");
+    revalidatePath("/sitemap.xml");
 
     return NextResponse.json({
       revalidated: true,
