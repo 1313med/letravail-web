@@ -18,9 +18,13 @@ export const DISCOVERY_SECTORS = [
   { slug: "banque", label: "Banque" },
   { slug: "tech", label: "Tech" },
   { slug: "finance", label: "Finance" },
+  { slug: "marketing", label: "Marketing" },
+  { slug: "rh", label: "RH" },
+  { slug: "logistique", label: "Logistique" },
   { slug: "telecom", label: "Télécom" },
   { slug: "industrie", label: "Industrie" },
   { slug: "sante", label: "Santé" },
+  { slug: "education", label: "Éducation" },
 ] as const;
 
 export const DISCOVERY_EXPERIENCE_LEVELS = [
@@ -55,8 +59,8 @@ export const SEO_JOB_ROUTES: Record<string, string> = {
   "/offres-emploi-tanger": "/emplois/tanger-morocco",
   "/offres-emploi-fes": "/emplois/fes-morocco",
   "/offres-emploi-agadir": "/emplois/agadir-morocco",
-  "/offres-emploi-tech": "/emplois?tag=tech",
-  "/offres-emploi-finance": "/emplois?tag=finance",
+  "/offres-emploi-tech": "/emploi-tech-maroc",
+  "/offres-emploi-finance": "/emploi-finance-maroc",
 };
 
 export function cityNameToSlug(name: string): string {

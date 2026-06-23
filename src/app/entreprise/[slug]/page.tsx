@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PremiumJobCard } from "@/components/premium/JobCard";
 import { JsonLd } from "@/components/JsonLd";
+import { JobsBreadcrumbs } from "@/components/jobs/JobsBreadcrumbs";
+import { PremiumJobCard } from "@/components/premium/JobCard";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
 import { getAvatarGradient, getInitials } from "@/lib/gradients";
 import { FEATURED_COMPANIES } from "@/lib/premium-data";
 import { getCompanyBySlug, getIndexableCompanySlugs } from "@/lib/queries";
-import { buildBreadcrumbJsonLd, buildCanonical, buildPageMetadata } from "@/lib/seo";
+import { buildBreadcrumbJsonLd, buildCanonical, buildCompanyOrganizationJsonLd, buildPageMetadata } from "@/lib/seo";
 import { pluralize } from "@/lib/utils";
 
 export const revalidate = REVALIDATE_SECONDS;
@@ -45,12 +46,28 @@ export default async function CompanyPage({ params }: Props) {
     <>
       <JsonLd data={buildBreadcrumbJsonLd([
         { name: "Accueil", url: buildCanonical("/") },
+        { name: "Entreprises", url: buildCanonical("/emplois") },
         { name: company.name, url: buildCanonical(`/entreprise/${params.slug}`) },
       ])} />
+      <JsonLd
+        data={buildCompanyOrganizationJsonLd({
+          name: company.name,
+          slug: params.slug,
+          jobCount: company.jobs.length,
+          industry: featured?.industry,
+        })}
+      />
 
-      <div className="pt-24 lg:pt-32">
+      <div className="section-dark min-h-screen pt-24 lg:pt-32">
         <div className="container-xl pb-24">
-          <div className="card-glass p-8 sm:p-10">
+          <JobsBreadcrumbs
+            items={[
+              { label: "Accueil", href: "/" },
+              { label: "Entreprises", href: "/emplois" },
+              { label: company.name },
+            ]}
+          />
+          <div className="card-glass mt-6 p-8 sm:p-10">
             <div className="flex items-start gap-6">
               <span className={`flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br text-2xl font-bold text-white ${gradient}`}>
                 {getInitials(company.name)}
@@ -62,7 +79,6 @@ export default async function CompanyPage({ params }: Props) {
                 </div>
                 {featured?.industry && <p className="mt-2 text-slate-muted">{featured.industry}</p>}
                 <p className="mt-3 text-slate-text">{pluralize(company.jobs.length, "offre active", "offres actives")}</p>
-                {featured?.rating && <p className="mt-1 text-mint">★ {featured.rating} / 5</p>}
               </div>
             </div>
             {cities.length > 1 && (

@@ -1,38 +1,48 @@
 import { MetadataRoute } from "next";
 import { getSiteUrl } from "@/lib/constants";
+import { SALARY_ROLES, salaryPublicSlug } from "@/lib/salary-data";
 import {
   getAllJobSlugs,
   getIndexableCitySlugs,
   getIndexableCompanySlugs,
+  getIndexableLandingSlugs,
 } from "@/lib/queries";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
 
-  const [jobs, cities, companies] = await Promise.all([
+  const [jobs, cities, companies, landings] = await Promise.all([
     getAllJobSlugs(50000),
     getIndexableCitySlugs(),
     getIndexableCompanySlugs(),
+    getIndexableLandingSlugs(),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: siteUrl,
-      lastModified: new Date(),
-      changeFrequency: "hourly",
-      priority: 1,
-    },
-    {
-      url: `${siteUrl}/emplois`,
-      lastModified: new Date(),
-      changeFrequency: "hourly",
-      priority: 0.9,
-    },
+    { url: siteUrl, lastModified: new Date(), changeFrequency: "hourly", priority: 1 },
+    { url: `${siteUrl}/emplois`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
+    { url: `${siteUrl}/salaires`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
+    { url: `${siteUrl}/recruteurs`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${siteUrl}/a-propos`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
   ];
+
+  const salaryPages: MetadataRoute.Sitemap = SALARY_ROLES.map((role) => ({
+    url: `${siteUrl}/${salaryPublicSlug(role.slug)}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+
+  const landingPages: MetadataRoute.Sitemap = landings.map((l) => ({
+    url: `${siteUrl}/${l.slug}`,
+    lastModified: l.updatedAt,
+    changeFrequency: "daily" as const,
+    priority: 0.88,
+  }));
 
   const jobPages: MetadataRoute.Sitemap = jobs.map((job) => ({
     url: `${siteUrl}/emploi/${job.slug}`,
-    lastModified: new Date(),
+    lastModified: job.updatedAt,
     changeFrequency: "daily" as const,
     priority: 0.8,
   }));
@@ -51,5 +61,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...cityPages, ...companyPages, ...jobPages];
+  return [
+    ...staticPages,
+    ...landingPages,
+    ...salaryPages,
+    ...cityPages,
+    ...companyPages,
+    ...jobPages,
+  ];
 }

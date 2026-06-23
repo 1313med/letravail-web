@@ -7,16 +7,17 @@ interface TrustMarqueeProps {
   totalJobs: number;
   cityCount: number;
   companyCount: number;
+  jobsAddedThisWeek: number;
 }
 
-export function TrustMarquee({ totalJobs, cityCount, companyCount }: TrustMarqueeProps) {
+export function TrustMarquee({ totalJobs, cityCount, companyCount, jobsAddedThisWeek }: TrustMarqueeProps) {
   const displayJobs = totalJobs >= 1000 ? Math.floor(totalJobs / 100) * 100 : totalJobs;
 
   const items = [
     { value: displayJobs, suffix: totalJobs >= 1000 ? "+" : "", label: "offres actives" },
-    { value: cityCount || 60, suffix: "", label: "villes" },
-    { value: companyCount || 300, suffix: "+", label: "entreprises" },
-    { value: 24, suffix: "/7", label: "mises à jour" },
+    { value: cityCount, suffix: "", label: "villes" },
+    { value: companyCount, suffix: "", label: "entreprises" },
+    { value: jobsAddedThisWeek, suffix: "", label: "nouvelles cette semaine" },
   ];
 
   return (

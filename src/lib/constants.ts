@@ -4,6 +4,7 @@ export const SITE_DESCRIPTION =
 export const SITE_LOCALE = "fr-MA";
 export const JOBS_PER_PAGE = 24;
 export const MIN_JOBS_FOR_CITY_INDEX = 5;
+export const MIN_JOBS_FOR_LANDING_INDEX = 3;
 export const NEW_JOB_DAYS = 7;
 export const REVALIDATE_SECONDS = Number(process.env.REVALIDATE_SECONDS) || 3600;
 

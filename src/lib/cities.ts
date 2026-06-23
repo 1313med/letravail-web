@@ -59,9 +59,14 @@ const CITY_FACTS: Record<string, string[]> = {
   ],
 };
 
+function citySlugToFactsKey(slug: string): string {
+  return slug.replace(/-morocco$/, "");
+}
+
 export function getCityIntro(cityName: string, citySlug?: string): CityIntro {
   const slug = citySlug || slugify(cityName);
-  const paragraphs = CITY_FACTS[slug] || [
+  const factsKey = citySlugToFactsKey(slug);
+  const paragraphs = CITY_FACTS[factsKey] || CITY_FACTS[slug] || [
     `${cityName} fait partie des villes marocaines où le marché de l'emploi évolue rapidement. Entreprises locales, filiales de groupes nationaux et acteurs internationaux y publient régulièrement des offres dans de nombreux secteurs.`,
     `Que vous soyez jeune diplômé, professionnel expérimenté ou en reconversion, ${cityName} propose des opportunités en CDI, CDD, stage et alternance. Letravail.ma agrège automatiquement les offres publiées par les employeurs pour vous faire gagner du temps.`,
     `Consultez ci-dessous les dernières offres d'emploi à ${cityName}, mises à jour automatiquement depuis les sites de recrutement des entreprises marocaines.`,

@@ -1,11 +1,13 @@
 import { JsonLd } from "@/components/JsonLd";
 import { JobsDiscoveryShell } from "@/components/jobs/JobsDiscoveryShell";
 import { JOBS_FAQ_ITEMS } from "@/lib/jobs-faq";
-import { REVALIDATE_SECONDS } from "@/lib/constants";
+import { REVALIDATE_SECONDS, JOBS_PER_PAGE } from "@/lib/constants";
+import { listingCanonicalPath, shouldNoindexListing } from "@/lib/indexation";
 import { parseFiltersFromSearchParams } from "@/lib/jobs-discovery";
 import {
   getCitiesForFilter,
   getContractTypes,
+  getJobCount,
   getJobs,
   getTags,
 } from "@/lib/queries";
@@ -25,16 +27,37 @@ interface Props {
 
 export async function generateMetadata({ searchParams }: Props) {
   const page = searchParams.page ? parseInt(searchParams.page, 10) : 1;
-  const path = page > 1 ? `/emplois?page=${page}` : "/emplois";
+  const path = listingCanonicalPath("/emplois", searchParams);
   const q = searchParams.q;
   const title = q
     ? `Offres d'emploi : ${q} au Maroc`
-    : "Offres d'emploi au Maroc";
+    : page > 1
+      ? `Offres d'emploi au Maroc — page ${page}`
+      : "Offres d'emploi au Maroc";
   const description = q
     ? `Trouvez des offres d'emploi pour « ${q} » au Maroc. CDI, CDD, stages — filtres par ville, contrat et salaire.`
     : "Découvrez les meilleures opportunités professionnelles du royaume. Parcourez des centaines d'offres mises à jour au Maroc.";
 
-  return buildPageMetadata({ title, description, path });
+  const total = shouldNoindexListing(searchParams)
+    ? undefined
+    : await getJobCount(parseFiltersFromSearchParams(searchParams));
+
+  const totalPages = total ? Math.ceil(total / JOBS_PER_PAGE) : 1;
+  const pagination =
+    !shouldNoindexListing(searchParams) && totalPages > 1
+      ? {
+          prev: page > 1 ? (page === 2 ? "/emplois" : `/emplois?page=${page - 1}`) : undefined,
+          next: page < totalPages ? `/emplois?page=${page + 1}` : undefined,
+        }
+      : undefined;
+
+  return buildPageMetadata({
+    title,
+    description,
+    path,
+    noindex: shouldNoindexListing(searchParams),
+    pagination,
+  });
 }
 
 export default async function AllJobsPage({ searchParams: sp }: Props) {

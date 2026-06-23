@@ -6,6 +6,7 @@ import { JOBS_FAQ_ITEMS } from "@/lib/jobs-faq";
 import { CityGrid } from "@/components/premium/CityVisuals";
 import { MIN_JOBS_FOR_CITY_INDEX, REVALIDATE_SECONDS } from "@/lib/constants";
 import { getCityIntro } from "@/lib/cities";
+import { listingCanonicalPath, shouldNoindexListing } from "@/lib/indexation";
 import { parseFiltersFromSearchParams } from "@/lib/jobs-discovery";
 import {
   getCityJobCount,
@@ -36,15 +37,15 @@ export async function generateStaticParams() {
   return (await getTopCitySlugs()).map((city) => ({ city }));
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params, searchParams }: Props) {
   const location = await getLocationBySlug(params.city);
   if (!location) return { title: "Ville introuvable" };
   const count = await getCityJobCount(params.city);
   return buildPageMetadata({
     title: `Emploi ${location.city} — ${count} offres`,
     description: `${count} offres d'emploi à ${location.city}, Maroc. CDI, CDD, stages et alternance — mises à jour automatiquement.`,
-    path: `/emplois/${params.city}`,
-    noindex: count < MIN_JOBS_FOR_CITY_INDEX,
+    path: listingCanonicalPath(`/emplois/${params.city}`, searchParams),
+    noindex: count < MIN_JOBS_FOR_CITY_INDEX || shouldNoindexListing(searchParams, count),
   });
 }
 

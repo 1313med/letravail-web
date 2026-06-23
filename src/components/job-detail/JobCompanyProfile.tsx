@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Star, Briefcase } from "lucide-react";
+import { MapPin, Briefcase } from "lucide-react";
 import { JobListItem } from "@/lib/queries";
 import { getCompanyLogo } from "@/lib/company-logos";
 import { getAvatarGradient, getInitials } from "@/lib/gradients";
@@ -11,14 +11,13 @@ interface JobCompanyProfileProps {
   companySlug?: string;
   city: string;
   industry: string;
-  rating: number;
   topEmployer: boolean;
-  employees: string;
+  activeJobs: number;
   otherJobs: JobListItem[];
 }
 
 export function JobCompanyProfile({
-  company, companySlug, city, industry, rating, topEmployer, employees, otherJobs,
+  company, companySlug, city, industry, topEmployer, activeJobs, otherJobs,
 }: JobCompanyProfileProps) {
   const logo = companySlug ? getCompanyLogo(companySlug) : undefined;
 
@@ -46,8 +45,9 @@ export function JobCompanyProfile({
           <p className="text-xs text-slate-muted sm:text-base">{industry}</p>
           <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-4 sm:gap-2">
             {topEmployer && <span className="badge-mint !text-[10px] sm:!text-xs">Top employeur</span>}
-            <span className="flex items-center gap-1 badge-navy !text-[10px] sm:!text-xs"><Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400 sm:h-3 sm:w-3" />{rating}/5</span>
-            <span className="badge-navy !text-[10px] sm:!text-xs">{employees}</span>
+            {activeJobs > 0 && (
+              <span className="badge-navy !text-[10px] sm:!text-xs">{activeJobs} offre{activeJobs > 1 ? "s" : ""} active{activeJobs > 1 ? "s" : ""}</span>
+            )}
             <span className="hidden items-center gap-1 badge-navy sm:flex"><MapPin className="h-3 w-3 text-mint" />{city}</span>
           </div>
           <p className="mt-2 hidden text-[15px] leading-relaxed text-slate-text sm:mt-5 sm:block">

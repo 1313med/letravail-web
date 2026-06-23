@@ -28,12 +28,14 @@ export function buildPageMetadata({
   path,
   noindex = false,
   ogImage,
+  pagination,
 }: {
   title: string;
   description: string;
   path: string;
   noindex?: boolean;
   ogImage?: string;
+  pagination?: { prev?: string; next?: string };
 }): Metadata {
   const canonical = buildCanonical(path);
   const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
@@ -46,6 +48,8 @@ export function buildPageMetadata({
       languages: {
         [SITE_LOCALE]: canonical,
       },
+      ...(pagination?.prev && { prev: buildCanonical(pagination.prev) }),
+      ...(pagination?.next && { next: buildCanonical(pagination.next) }),
     },
     openGraph: {
       title: fullTitle,
@@ -173,5 +177,57 @@ export function buildOrganizationJsonLd(): object {
       },
       "query-input": "required name=search_term_string",
     },
+  };
+}
+
+export function buildCompanyOrganizationJsonLd(company: {
+  name: string;
+  slug: string;
+  jobCount: number;
+  industry?: string;
+}): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: company.name,
+    url: buildCanonical(`/entreprise/${company.slug}`),
+    ...(company.industry && { description: `Recrutement ${company.name} — ${company.industry}` }),
+    numberOfEmployees: {
+      "@type": "QuantitativeValue",
+      value: company.jobCount,
+      unitText: "offres actives",
+    },
+  };
+}
+
+export function buildSalaryJsonLd(role: {
+  title: string;
+  min: number;
+  median: number;
+  max: number;
+  path: string;
+  sampleSize: number;
+}): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Occupation",
+    name: role.title,
+    occupationLocation: {
+      "@type": "Country",
+      name: "Morocco",
+    },
+    estimatedSalary: [
+      {
+        "@type": "MonetaryAmountDistribution",
+        name: "base",
+        currency: "MAD",
+        duration: "P1M",
+        minValue: role.min,
+        maxValue: role.max,
+        median: role.median,
+      },
+    ],
+    url: buildCanonical(role.path),
+    description: `Salaire ${role.title} au Maroc basé sur ${role.sampleSize} offres analysées.`,
   };
 }

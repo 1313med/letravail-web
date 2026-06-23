@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  MapPin, Banknote, FileText, Building2, Clock, Star, Share2, Bookmark, Flag, ExternalLink, Users,
+  MapPin, Banknote, FileText, Building2, Clock, Star, Share2, Bookmark, Flag, ExternalLink,
 } from "lucide-react";
 import { getCompanyLogo } from "@/lib/company-logos";
 import { getCompanyMeta, getWorkMode } from "@/lib/job-detail";
@@ -14,6 +14,7 @@ import { MagneticWrap } from "@/lib/motion";
 import { formatDate, formatRelativeDate } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 import { useSavedJobs } from "@/components/jobs/JobCardVariants";
+import { trackApplyClick } from "@/lib/analytics";
 
 interface JobApplyCardProps {
   slug: string;
@@ -23,11 +24,10 @@ interface JobApplyCardProps {
   applicationUrl: string;
   expiresAt: Date | null;
   expired: boolean;
-  applicants?: number;
 }
 
 export function JobApplyCard({
-  slug, title, company, companySlug, applicationUrl, expiresAt, expired, applicants = 24,
+  slug, title, company, applicationUrl, expiresAt, expired,
 }: JobApplyCardProps) {
   const { saved, toggle } = useSavedJobs();
   const isSaved = saved.has(slug);
@@ -57,6 +57,7 @@ export function JobApplyCard({
             href={applicationUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackApplyClick(slug, company)}
             className={cn(
               "btn-mint flex w-full items-center justify-center gap-2 !py-3.5 !text-sm shadow-glow-lg sm:!py-4 sm:!text-base",
               expired && "pointer-events-none opacity-50"
@@ -90,14 +91,6 @@ export function JobApplyCard({
         </div>
 
         <div className="mt-4 space-y-2 border-t border-white/8 pt-4 text-xs sm:mt-6 sm:space-y-3 sm:pt-5 sm:text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-slate-dim">Réponse habituelle</span>
-            <span className="font-medium text-white">~5 jours</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-slate-dim"><Users className="h-3.5 w-3.5" /> Candidats</span>
-            <span className="font-medium text-white">{applicants}</span>
-          </div>
           {expiresAt && (
             <div className="flex items-center justify-between">
               <span className="text-slate-dim">Date limite</span>
@@ -149,8 +142,9 @@ export function JobCompanyMiniCard({ company, companySlug, city, activeJobs = 1 
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {isTop && <span className="badge-mint">Top employeur</span>}
-        <span className="flex items-center gap-1 badge-navy"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{meta.rating}</span>
-        <span className="badge-navy">{meta.employees} employés</span>
+        {activeJobs > 0 && (
+          <span className="badge-navy">{activeJobs} offre{activeJobs > 1 ? "s" : ""} active{activeJobs > 1 ? "s" : ""}</span>
+        )}
       </div>
       <p className="mt-3 flex items-center gap-1.5 text-sm text-slate-muted">
         <MapPin className="h-3.5 w-3.5 text-mint" />{city}

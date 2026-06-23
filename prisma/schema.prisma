@@ -95,6 +95,66 @@ model JobTag {
   @@map("job_tags")
 }
 
+model Subscriber {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  citySlug   String?
+  sectorSlug String?
+  source     String   @default("website")
+  createdAt  DateTime @default(now())
+
+  @@index([sectorSlug])
+  @@index([citySlug])
+  @@map("subscribers")
+}
+
+model JobTitleTaxonomy {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  label      String
+  parentSlug String?
+  sectorSlug String?
+  keywords   String[] @default([])
+  createdAt  DateTime @default(now())
+
+  @@index([sectorSlug])
+  @@map("job_title_taxonomy")
+}
+
+model SalaryObservation {
+  id           String   @id @default(cuid())
+  jobId        String
+  titleNorm    String
+  citySlug     String?
+  sectorSlug   String?
+  salaryMin    Int?
+  salaryMax    Int?
+  currency     String   @default("MAD")
+  contractType String?
+  observedAt   DateTime @default(now())
+  source       String   @default("scraped")
+
+  @@index([titleNorm, citySlug])
+  @@index([sectorSlug, observedAt])
+  @@index([jobId])
+  @@map("salary_observations")
+}
+
+model MarketSnapshot {
+  id           String   @id @default(cuid())
+  weekStart    DateTime
+  citySlug     String?
+  sectorSlug   String?
+  jobCount     Int
+  medianSalary Int?
+  topSkills    Json     @default("[]")
+  topCompanies Json     @default("[]")
+
+  @@unique([weekStart, citySlug, sectorSlug])
+  @@index([weekStart])
+  @@map("market_snapshots")
+}
+
 model ScrapeLog {
   id           String    @id @default(cuid())
   source       String

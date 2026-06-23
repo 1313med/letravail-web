@@ -51,13 +51,8 @@ export function CompaniesSection({ companies }: CompaniesSectionProps) {
                 {"industry" in company && company.industry && (
                   <p className="mt-1 text-sm text-slate-muted">{company.industry}</p>
                 )}
-                <div className="mt-4 flex items-center justify-between text-sm">
-                  <span className="text-slate-muted">{company._count.jobs} offres actives</span>
-                  {"rating" in company && company.rating && (
-                    <span className="flex items-center gap-1 text-mint">
-                      ★ {company.rating}
-                    </span>
-                  )}
+                <div className="mt-4 text-sm text-slate-muted">
+                  {company._count.jobs} offre{company._count.jobs > 1 ? "s" : ""} active{company._count.jobs > 1 ? "s" : ""}
                 </div>
               </Link>
             );

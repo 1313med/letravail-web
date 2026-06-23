@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 import { PremiumHeader, MobileBottomNav, AiAssistant } from "@/components/premium/Navigation";
 import { PremiumFooter } from "@/components/premium/Footer";
+import { Analytics } from "@/components/Analytics";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_DESCRIPTION, SITE_LOCALE, SITE_NAME } from "@/lib/constants";
 import { buildOrganizationJsonLd } from "@/lib/seo";
@@ -26,6 +27,9 @@ export const metadata: Metadata = {
     locale: SITE_LOCALE.replace("-", "_"),
     siteName: SITE_NAME,
   },
+  ...(process.env.NEXT_PUBLIC_GSC_VERIFICATION && {
+    verification: { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION },
+  }),
 };
 
 export default function RootLayout({
@@ -34,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang={SITE_LOCALE}>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <Analytics />
         <JsonLd data={buildOrganizationJsonLd()} />
         <PremiumHeader />
         <main className="pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>

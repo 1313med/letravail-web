@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   MapPin,
   Bookmark,
@@ -37,7 +36,7 @@ export function useSavedJobs() {
       const next = new Set(prev);
       if (next.has(slug)) next.delete(slug);
       else next.add(slug);
-      localStorage.setItem(SAVED_KEY, JSON.stringify([...next]));
+      localStorage.setItem(SAVED_KEY, JSON.stringify(Array.from(next)));
       return next;
     });
   }

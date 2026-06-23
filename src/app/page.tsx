@@ -4,16 +4,11 @@ import { CityCarousel } from "@/components/home/CityCarousel";
 import { FeaturedJobsSection } from "@/components/home/FeaturedJobsSection";
 import { EmployerShowcase } from "@/components/home/EmployerShowcase";
 import { SalaryInsights } from "@/components/home/SalaryInsights";
-import { AiCareerBlock } from "@/components/home/AiCareerBlock";
-import { TestimonialsGallery } from "@/components/home/TestimonialsGallery";
+import { JobAlertSignup } from "@/components/seo/JobAlertSignup";
+import { PlatformStats } from "@/components/home/PlatformStats";
 import { FinalCta } from "@/components/home/FinalCta";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
-import {
-  getCitiesForFilter,
-  getTopCities,
-  getTopCompanies,
-  getTotalJobCount,
-} from "@/lib/queries";
+import { getCitiesForFilter, getPlatformStats, getTopCities, getTopCompanies } from "@/lib/queries";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = REVALIDATE_SECONDS;
@@ -26,8 +21,8 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function HomePage() {
-  const [totalJobs, topCities, topCompanies, cities] = await Promise.all([
-    getTotalJobCount(),
+  const [stats, topCities, topCompanies, cities] = await Promise.all([
+    getPlatformStats(),
     getTopCities(12),
     getTopCompanies(12),
     getCitiesForFilter(),
@@ -35,33 +30,30 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Moment 1 — Dark cinematic hero */}
       <CinematicHero cities={cities} />
       <TrustMarquee
-        totalJobs={totalJobs}
-        cityCount={topCities.length}
-        companyCount={topCompanies.length}
+        totalJobs={stats.activeJobs}
+        cityCount={stats.activeCities}
+        companyCount={stats.activeCompanies}
+        jobsAddedThisWeek={stats.jobsAddedThisWeek}
       />
 
-      {/* Moment 2 — Light cities */}
       <CityCarousel cities={topCities} />
-
-      {/* Moment 3 — Dark featured jobs */}
       <FeaturedJobsSection />
-
-      {/* Moment 4 — Light employers */}
       <EmployerShowcase companies={topCompanies} />
-
-      {/* Moment 5 — Gradient salaries */}
       <SalaryInsights />
-
-      {/* Moment 6 — Glass AI */}
-      <AiCareerBlock />
-
-      {/* Moment 7 — White testimonials */}
-      <TestimonialsGallery />
-
-      {/* Moment 8 — Dark finale */}
+      <section className="section-glass story-section">
+        <div className="container-xl">
+          <JobAlertSignup variant="light" label="Recevez les meilleures offres par email" />
+        </div>
+      </section>
+      <PlatformStats
+        activeJobs={stats.activeJobs}
+        activeCompanies={stats.activeCompanies}
+        activeCities={stats.activeCities}
+        jobsAddedThisWeek={stats.jobsAddedThisWeek}
+        lastScrapeAt={stats.lastScrapeAt}
+      />
       <FinalCta />
     </>
   );

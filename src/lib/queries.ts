@@ -3,8 +3,16 @@ import { prisma } from "./db";
 import {
   JOBS_PER_PAGE,
   MIN_JOBS_FOR_CITY_INDEX,
+  MIN_JOBS_FOR_LANDING_INDEX,
 } from "./constants";
 import { DISCOVERY_EXPERIENCE_LEVELS } from "./jobs-discovery";
+import {
+  getAllLandingSlugCandidates,
+  landingToJobFilters,
+  parseLandingSlug,
+} from "./landing-pages";
+import { SALARY_ROLES, median, percentile } from "./salary-data";
+import { parseSalaryRange } from "./job-detail";
 
 export type JobListItem = {
   id: string;
@@ -33,10 +41,22 @@ export type JobFilters = {
   minSalary?: number;
   experience?: string;
   page?: number;
+  includeExpired?: boolean;
 };
+
+export function activeJobsWhere(): Prisma.JobWhereInput {
+  return {
+    OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+  };
+}
 
 function buildJobWhere(filters: JobFilters): Prisma.JobWhereInput {
   const where: Prisma.JobWhereInput = {};
+
+  if (!filters.includeExpired) {
+    const active = activeJobsWhere();
+    where.AND = [active];
+  }
 
   if (filters.q) {
     where.OR = [
@@ -73,10 +93,8 @@ function buildJobWhere(filters: JobFilters): Prisma.JobWhereInput {
         { description: { contains: "hybrid", mode: "insensitive" as const } },
       ],
     };
-    where.AND = [
-      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
-      hybridClause,
-    ];
+    const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+    where.AND = [...existingAnd, hybridClause];
   }
 
   if (filters.minSalary && filters.minSalary > 0) {
@@ -89,10 +107,8 @@ function buildJobWhere(filters: JobFilters): Prisma.JobWhereInput {
       const expOr = level.keywords.map((kw) => ({
         title: { contains: kw, mode: "insensitive" as const },
       }));
-      where.AND = [
-        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
-        { OR: expOr },
-      ];
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, { OR: expOr }];
     }
   }
 
@@ -186,6 +202,7 @@ export async function getCompanyBySlug(slug: string) {
     where: { slug },
     include: {
       jobs: {
+        where: activeJobsWhere(),
         select: jobListSelect,
         orderBy: jobListOrderBy,
       },
@@ -206,7 +223,7 @@ export async function getLocationBySlug(slug: string) {
 
 export async function getCityJobCount(slug: string) {
   return prisma.job.count({
-    where: { location: { slug } },
+    where: { AND: [{ location: { slug } }, activeJobsWhere()] },
   });
 }
 
@@ -271,8 +288,137 @@ export async function getRandomJobs(limit = 8) {
     .map(mapJobRow);
 }
 
+export async function getJobCount(filters: JobFilters = {}) {
+  return prisma.job.count({ where: buildJobWhere(filters) });
+}
+
+export async function getCompaniesForLanding(
+  filters: JobFilters,
+  limit = 10
+) {
+  const where = buildJobWhere(filters);
+  return prisma.company.findMany({
+    where: { jobs: { some: where } },
+    select: {
+      name: true,
+      slug: true,
+      _count: { select: { jobs: true } },
+    },
+    orderBy: { jobs: { _count: "desc" } },
+    take: limit,
+  });
+}
+
+export async function getIndexableLandingSlugs(): Promise<
+  { slug: string; updatedAt: Date }[]
+> {
+  const candidates = getAllLandingSlugCandidates();
+  const results = await Promise.all(
+    candidates.map(async (slug) => {
+      const landing = parseLandingSlug(slug);
+      if (!landing) return null;
+      const count = await getJobCount(landingToJobFilters(landing));
+      if (count < MIN_JOBS_FOR_LANDING_INDEX) return null;
+      return { slug, updatedAt: new Date() };
+    })
+  );
+  return results.filter((r): r is { slug: string; updatedAt: Date } => r != null);
+}
+
+export async function getSalaryStatsForRole(roleSlug: string) {
+  const role = SALARY_ROLES.find((r) => r.slug === roleSlug);
+  if (!role) return null;
+
+  const titleOr = role.keywords.map((kw) => ({
+    title: { contains: kw, mode: "insensitive" as const },
+  }));
+
+  const jobs = await prisma.job.findMany({
+    where: {
+      AND: [
+        activeJobsWhere(),
+        { salary: { not: null } },
+        { OR: titleOr },
+      ],
+    },
+    select: {
+      id: true,
+      title: true,
+      salary: true,
+      city: true,
+      location: { select: { slug: true } },
+    },
+    take: 500,
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const medians: number[] = [];
+  const byCity = new Map<string, number[]>();
+
+  for (const job of jobs) {
+    const parsed = parseSalaryRange(job.salary, job.title);
+    if (parsed.median) {
+      medians.push(parsed.median);
+      const cityKey = job.location?.slug ?? job.city;
+      const list = byCity.get(cityKey) ?? [];
+      list.push(parsed.median);
+      byCity.set(cityKey, list);
+    }
+  }
+
+  const sampleSize = medians.length;
+  const computed = {
+    min: percentile(medians, 25) ?? role.fallback.min,
+    median: median(medians) ?? role.fallback.median,
+    max: percentile(medians, 75) ?? role.fallback.max,
+    trend: role.fallback.trend,
+    sampleSize,
+    byCity: Array.from(byCity.entries())
+      .map(([slug, vals]) => ({
+        slug,
+        median: median(vals) ?? 0,
+        count: vals.length,
+      }))
+      .sort((a, b) => b.median - a.median)
+      .slice(0, 5),
+  };
+
+  return { role, stats: computed, jobs };
+}
+
 export async function getTotalJobCount() {
-  return prisma.job.count();
+  return prisma.job.count({ where: activeJobsWhere() });
+}
+
+export async function getActiveCompanyCount() {
+  return prisma.company.count({
+    where: { jobs: { some: activeJobsWhere() } },
+  });
+}
+
+export async function getActiveCityCount() {
+  return prisma.location.count({
+    where: { jobs: { some: activeJobsWhere() } },
+  });
+}
+
+export async function getJobsAddedThisWeek() {
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  return prisma.job.count({ where: { createdAt: { gte: weekAgo } } });
+}
+
+export async function getPlatformStats() {
+  const [activeJobs, activeCompanies, activeCities, jobsAddedThisWeek, lastScrapeAt] =
+    await Promise.all([
+      getTotalJobCount(),
+      getActiveCompanyCount(),
+      getActiveCityCount(),
+      getJobsAddedThisWeek(),
+      getLastScrapeTime(),
+    ]);
+
+  return { activeJobs, activeCompanies, activeCities, jobsAddedThisWeek, lastScrapeAt };
 }
 
 export async function getLastScrapeTime() {
@@ -339,8 +485,9 @@ export async function getOtherCities(currentSlug: string, limit = 8) {
 
 export async function getAllJobSlugs(limit = 5000) {
   return prisma.job.findMany({
-    select: { slug: true },
-    orderBy: { createdAt: "desc" },
+    where: activeJobsWhere(),
+    select: { slug: true, updatedAt: true },
+    orderBy: { updatedAt: "desc" },
     take: limit,
   });
 }
@@ -349,8 +496,14 @@ export async function getIndexableCitySlugs() {
   const cities = await prisma.location.findMany({
     select: { slug: true, _count: { select: { jobs: true } } },
   });
-  return cities
-    .filter((c) => c._count.jobs >= MIN_JOBS_FOR_CITY_INDEX)
+  const counts = await Promise.all(
+    cities.map(async (c) => ({
+      slug: c.slug,
+      count: await getCityJobCount(c.slug),
+    }))
+  );
+  return counts
+    .filter((c) => c.count >= MIN_JOBS_FOR_CITY_INDEX)
     .map((c) => c.slug);
 }
 

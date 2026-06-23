@@ -8,7 +8,7 @@ import { JobsFilterSidebar } from "./JobsFilterSidebar";
 import { JobsFeed } from "./JobsFeed";
 import { JobsInsightsPanel } from "./JobsInsightsPanel";
 import { JobsEmptyState } from "./JobsEmptyState";
-import { LoadMoreJobs } from "./LoadMoreJobs";
+import { Pagination } from "@/components/Pagination";
 import { MobileFilterSheet } from "./MobileFilterSheet";
 import { JobsBreadcrumbs } from "./JobsBreadcrumbs";
 import { JobsFAQ } from "./JobsFAQ";
@@ -96,9 +96,12 @@ export function JobsDiscoveryShell({
             {jobs.length > 0 ? (
               <>
                 <JobsFeed jobs={jobs} />
-                <Suspense fallback={null}>
-                  <LoadMoreJobs initialPage={page} totalPages={totalPages} searchParams={searchParams} />
-                </Suspense>
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  basePath={basePath}
+                  searchParams={searchParams}
+                />
               </>
             ) : (
               <JobsEmptyState basePath={basePath} hasFilters={hasFilters} />

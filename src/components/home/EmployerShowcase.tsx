@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Star } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { FEATURED_COMPANIES } from "@/lib/premium-data";
 import { MOROCCAN_COMPANY_LOGOS } from "@/lib/company-logos";
 import { TiltCard, fadeUp, stagger } from "@/lib/motion";
@@ -78,7 +78,7 @@ function EmployerCard({
   company,
   hero = false,
 }: {
-  company: Company & { logo?: string; industry?: string; rating?: number; topEmployer?: boolean };
+  company: Company & { logo?: string; industry?: string; topEmployer?: boolean };
   hero?: boolean;
 }) {
   return (
@@ -104,10 +104,7 @@ function EmployerCard({
           </div>
           {company.industry && <p className="mt-1 text-sm text-navy/45">{company.industry}</p>}
           <div className="mt-4 flex items-center gap-4">
-            <span className="font-semibold text-navy/60">{company._count.jobs} postes</span>
-            {company.rating && (
-              <span className="flex items-center gap-1 text-sm text-navy/50"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />{company.rating}</span>
-            )}
+            <span className="font-semibold text-navy/60">{company._count.jobs} poste{company._count.jobs > 1 ? "s" : ""}</span>
           </div>
           <ArrowUpRight className="mt-4 h-5 w-5 text-emerald-600 opacity-0 transition-opacity group-hover:opacity-100" />
         </div>

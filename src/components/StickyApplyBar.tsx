@@ -2,6 +2,7 @@
 
 import { Bookmark, ExternalLink } from "lucide-react";
 import { useSavedJobs } from "@/components/jobs/JobCardVariants";
+import { trackApplyClick } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 
 interface StickyApplyBarProps {
@@ -33,6 +34,7 @@ export function StickyApplyBar({ slug, applicationUrl, company, expired }: Stick
           href={applicationUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackApplyClick(slug, company)}
           className={cn(
             "btn-mint flex flex-1 items-center justify-center gap-2 !py-3 !text-base",
             expired && "pointer-events-none opacity-50"

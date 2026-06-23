@@ -37,37 +37,13 @@ export const SALARY_DATA = [
   },
 ] as const;
 
-export const TESTIMONIALS = [
-  {
-    name: "Yasmine B.",
-    role: "Développeuse · Casablanca",
-    quote:
-      "J'ai trouvé mon poste chez une banque en moins de deux semaines. L'interface est d'un autre niveau — on se croirait sur un site international.",
-    avatar: "YB",
-  },
-  {
-    name: "Karim E.",
-    role: "Analyste financier · Rabat",
-    quote:
-      "Enfin une plateforme marocaine qui agrège tout. Plus besoin de visiter 20 sites de recrutement différents.",
-    avatar: "KE",
-  },
-  {
-    name: "Salma M.",
-    role: "Responsable RH · Marrakech",
-    quote:
-      "En tant qu'employeur, Letravail.ma nous apporte une visibilité premium. Les candidats sont plus qualifiés.",
-    avatar: "SM",
-  },
-] as const;
-
 export const FEATURED_COMPANIES = [
-  { name: "Attijariwafa Bank", slug: "attijariwafa-bank", industry: "Banque", rating: 4.5, topEmployer: true },
-  { name: "CIH Bank", slug: "cih-bank", industry: "Banque", rating: 4.3, topEmployer: true },
-  { name: "OCP", slug: "ocp", industry: "Industrie", rating: 4.4, topEmployer: true },
-  { name: "Maroc Telecom", slug: "maroc-telecom", industry: "Télécom", rating: 4.2, topEmployer: false },
-  { name: "Orange Maroc", slug: "orange-maroc", industry: "Télécom", rating: 4.1, topEmployer: false },
-  { name: "DXC Technology", slug: "dxc-technology", industry: "Tech", rating: 4.0, topEmployer: false },
+  { name: "Attijariwafa Bank", slug: "attijariwafa-bank", industry: "Banque", topEmployer: true },
+  { name: "CIH Bank", slug: "cih-bank", industry: "Banque", topEmployer: true },
+  { name: "OCP", slug: "ocp", industry: "Industrie", topEmployer: true },
+  { name: "Maroc Telecom", slug: "maroc-telecom", industry: "Télécom", topEmployer: false },
+  { name: "Orange Maroc", slug: "orange-maroc", industry: "Télécom", topEmployer: false },
+  { name: "DXC Technology", slug: "dxc-technology", industry: "Tech", topEmployer: false },
 ] as const;
 
 export const CITY_IMAGES: Record<string, string> = {

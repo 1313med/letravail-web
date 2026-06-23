@@ -17,8 +17,8 @@ const nextConfig = {
       { source: "/offres-emploi-tanger", destination: "/emplois/tanger-morocco", permanent: true },
       { source: "/offres-emploi-fes", destination: "/emplois/fes-morocco", permanent: true },
       { source: "/offres-emploi-agadir", destination: "/emplois/agadir-morocco", permanent: true },
-      { source: "/offres-emploi-tech", destination: "/emplois?tag=tech", permanent: true },
-      { source: "/offres-emploi-finance", destination: "/emplois?tag=finance", permanent: true },
+      { source: "/offres-emploi-tech", destination: "/emploi-tech-maroc", permanent: true },
+      { source: "/offres-emploi-finance", destination: "/emploi-finance-maroc", permanent: true },
     ];
   },
 };

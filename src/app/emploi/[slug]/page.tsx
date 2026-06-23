@@ -9,9 +9,9 @@ import { JobSkillsSection, JobBenefitsSection } from "@/components/job-detail/Jo
 import { JobSalaryBlock } from "@/components/job-detail/JobSalaryBlock";
 import { JobCompanyProfile } from "@/components/job-detail/JobCompanyProfile";
 import { JobAiCopilot } from "@/components/job-detail/JobAiCopilot";
-import { JobSuccessStories } from "@/components/job-detail/JobSuccessStories";
 import { JobDetailFAQ, JobRelatedSearches } from "@/components/job-detail/JobDetailSeo";
 import { SimilarJobsCarousel } from "@/components/job-detail/SimilarJobsCarousel";
+import { JobViewTracker } from "@/components/seo/JobViewTracker";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
 import {
   parseJobSections,
@@ -32,12 +32,6 @@ export const revalidate = REVALIDATE_SECONDS;
 
 interface Props { params: { slug: string } }
 
-function stableApplicants(slug: string): number {
-  let h = 0;
-  for (let i = 0; i < slug.length; i++) h = (h + slug.charCodeAt(i)) % 35;
-  return h + 18;
-}
-
 export async function generateStaticParams() {
   const slugs = await getRecentJobSlugs(500);
   return slugs.map((slug) => ({ slug }));
@@ -46,10 +40,12 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props) {
   const job = await getJobBySlug(params.slug);
   if (!job) return { title: "Offre introuvable" };
+  const expired = isJobExpired(job.expiresAt);
   return buildPageMetadata({
     title: `${job.title} — ${job.company}, ${job.city}`,
     description: excerpt(job.description, 155),
     path: `/emploi/${job.slug}`,
+    noindex: expired,
   });
 }
 
@@ -97,6 +93,7 @@ export default async function JobDetailPage({ params }: Props) {
 
   return (
     <>
+      <JobViewTracker slug={job.slug} />
       <JsonLd data={[breadcrumbJsonLd, jobJsonLd]} />
       <JsonLd data={buildFaqJsonLd(faqItems.map((f) => ({ question: f.q, answer: f.a })))} />
 
@@ -130,13 +127,11 @@ export default async function JobDetailPage({ params }: Props) {
                 companySlug={companySlug}
                 city={job.city}
                 industry={companyMeta.industry}
-                rating={companyMeta.rating}
                 topEmployer={isTopEmployer}
-                employees={companyMeta.employees}
+                activeJobs={activeJobs}
                 otherJobs={otherCompanyJobs}
               />
               <JobAiCopilot />
-              <JobSuccessStories />
               <JobDetailFAQ items={faqItems} />
               <JobRelatedSearches links={relatedLinks} />
             </main>
@@ -151,7 +146,6 @@ export default async function JobDetailPage({ params }: Props) {
                   applicationUrl={job.applicationUrl}
                   expiresAt={job.expiresAt}
                   expired={expired}
-                  applicants={stableApplicants(job.slug)}
                 />
                 <JobCompanyMiniCard
                   company={job.company}
