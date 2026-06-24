@@ -1,5 +1,6 @@
 import { SALARY_DATA, FEATURED_COMPANIES } from "./premium-data";
 import { sectorLandingSlug, comboLandingSlug, SEO_CITIES } from "./landing-pages";
+import { estimateMoroccanSalary } from "./moroccan-salary-estimate";
 
 export interface JobSection {
   id: string;
@@ -86,14 +87,12 @@ export function parseSalaryRange(salary: string | null, title = ""): SalaryInsig
 }
 
 function estimateMarketMedian(title: string): { median: number; trend: string } {
-  const lower = title.toLowerCase();
-  for (const item of SALARY_DATA) {
+  const est = estimateMoroccanSalary({ title });
+  const role = SALARY_DATA.find((item) => {
     const words = item.title.toLowerCase().split(" ");
-    if (words.some((w) => lower.includes(w))) {
-      return { median: item.median, trend: item.trend };
-    }
-  }
-  return { median: 15000, trend: "+6%" };
+    return words.some((w) => title.toLowerCase().includes(w));
+  });
+  return { median: est.median, trend: role?.trend ?? "+6%" };
 }
 
 export function parseJobSections(description: string, requirements?: string | null): JobSection[] {

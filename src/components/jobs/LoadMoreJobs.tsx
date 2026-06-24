@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { motion } from "framer-motion";
+import { useState, useTransition, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { JobListItem } from "@/lib/queries";
 import { JobsFeed } from "./JobsFeed";
@@ -9,47 +9,91 @@ import { JobsFeed } from "./JobsFeed";
 interface LoadMoreJobsProps {
   initialPage: number;
   totalPages: number;
+  basePath: string;
   searchParams: Record<string, string | undefined>;
 }
 
-export function LoadMoreJobs({ initialPage, totalPages, searchParams }: LoadMoreJobsProps) {
+function JobCardSkeleton() {
+  return <div className="h-[68px] animate-pulse rounded-lg bg-white/5" />;
+}
+
+export function LoadMoreJobs({
+  initialPage,
+  totalPages,
+  basePath,
+  searchParams,
+}: LoadMoreJobsProps) {
+  const router = useRouter();
   const [page, setPage] = useState(initialPage);
   const [extraJobs, setExtraJobs] = useState<JobListItem[]>([]);
   const [pending, startTransition] = useTransition();
+  const scrollYRef = useRef(0);
+
+  const paramsKey = useMemo(
+    () => JSON.stringify({ ...searchParams, page: undefined }),
+    [searchParams]
+  );
+
+  useEffect(() => {
+    setPage(initialPage);
+    setExtraJobs([]);
+  }, [paramsKey, initialPage]);
+
   const hasMore = page < totalPages;
 
+  function updateUrl(nextPage: number) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(searchParams)) {
+      if (v && k !== "page") params.set(k, v);
+    }
+    if (nextPage > 1) params.set("page", String(nextPage));
+    const qs = params.toString();
+    const url = qs ? `${basePath}?${qs}` : basePath;
+    router.replace(url, { scroll: false });
+  }
+
   function loadMore() {
+    scrollYRef.current = window.scrollY;
+    const nextPage = page + 1;
+
     startTransition(async () => {
       const params = new URLSearchParams();
       for (const [k, v] of Object.entries(searchParams)) {
         if (v) params.set(k, v);
       }
-      params.set("page", String(page + 1));
+      params.set("page", String(nextPage));
       const res = await fetch(`/api/jobs?${params.toString()}`);
       if (!res.ok) return;
       const data = await res.json();
       setExtraJobs((prev) => [...prev, ...data.jobs]);
-      setPage(page + 1);
+      setPage(nextPage);
+      updateUrl(nextPage);
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollYRef.current, behavior: "instant" as ScrollBehavior });
+      });
     });
   }
 
   if (!hasMore && extraJobs.length === 0) return null;
 
   return (
-    <div className="mt-10 space-y-6">
-      {extraJobs.length > 0 && <JobsFeed jobs={extraJobs} continueFeed />}
+    <div className="mt-3 space-y-1">
+      {extraJobs.length > 0 && <JobsFeed jobs={extraJobs} skipFeatured />}
+      {pending && (
+        <div className="space-y-1" aria-hidden>
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+        </div>
+      )}
       {hasMore && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="flex justify-center pt-4"
-        >
+        <div className="flex justify-center pt-2">
           <button
             type="button"
             onClick={loadMore}
             disabled={pending}
-            className="group flex items-center gap-3 rounded-full border border-white/15 bg-white/5 px-10 py-4 text-sm font-bold text-white transition-all hover:border-mint/30 hover:bg-mint/10 disabled:opacity-60"
+            aria-busy={pending}
+            className="flex min-h-[44px] w-full max-w-lg items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-bold text-white transition-all hover:border-mint/30 hover:bg-mint/10 disabled:opacity-60"
           >
             {pending ? (
               <>
@@ -58,12 +102,14 @@ export function LoadMoreJobs({ initialPage, totalPages, searchParams }: LoadMore
               </>
             ) : (
               <>
-                Voir plus d&apos;offres
-                <span className="text-slate-dim">({page}/{totalPages})</span>
+                Charger plus d&apos;offres
+                <span className="font-normal text-slate-dim">
+                  ({page}/{totalPages})
+                </span>
               </>
             )}
           </button>
-        </motion.div>
+        </div>
       )}
     </div>
   );

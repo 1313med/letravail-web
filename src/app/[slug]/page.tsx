@@ -217,7 +217,6 @@ export default async function DynamicLandingPage({ params, searchParams: sp }: P
         basePath={path}
         heroTitle={h1}
         heroSubtitle={intro.slice(0, 120) + "…"}
-        heroLabel="Secteur"
         hideCityFilter={landing.type === "combo"}
         fixedCity={landing.type === "combo" ? landing.city.slug : undefined}
         breadcrumbs={landingBreadcrumbs(landing)}

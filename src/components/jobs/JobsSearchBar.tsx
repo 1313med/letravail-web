@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Sparkles, Clock, TrendingUp, Briefcase, MapPin, Banknote, X, ChevronDown } from "lucide-react";
+import { FilterTriggerButton } from "./JobsFilterSheet";
 import { POPULAR_SEARCHES } from "@/lib/jobs-discovery";
 import { MagneticWrap } from "@/lib/motion";
 import { cn } from "@/lib/cn";
@@ -19,6 +20,8 @@ interface JobsSearchBarProps {
   initialCity?: string;
   initialContract?: string;
   initialMinSalary?: number;
+  onOpenFilters?: () => void;
+  filterCount?: number;
 }
 
 function SearchFormFields({
@@ -172,6 +175,8 @@ export function JobsSearchBar({
   initialCity = "",
   initialContract = "",
   initialMinSalary = 0,
+  onOpenFilters,
+  filterCount = 0,
 }: JobsSearchBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -209,14 +214,6 @@ export function JobsSearchBar({
     else parts.push("Métier, ville, contrat…");
     return parts[0];
   }, [query]);
-
-  const activeChips = useMemo(() => {
-    const chips: string[] = [];
-    if (cityLabel) chips.push(cityLabel);
-    if (contract) chips.push(contract);
-    if (minSalary > 0) chips.push(`${(minSalary / 1000).toFixed(0)}k+ MAD`);
-    return chips;
-  }, [cityLabel, contract, minSalary]);
 
   function saveRecent(q: string) {
     if (!q.trim()) return;
@@ -258,33 +255,28 @@ export function JobsSearchBar({
   return (
     <>
       <div className={cn(sticky && "sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-40 lg:top-20")}>
-        <div className="border-b border-white/5 bg-navy/90 backdrop-blur-2xl">
-          <div className="container-xl py-3 sm:py-5">
-            {/* Mobile — collapsed trigger */}
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              className="flex w-full items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-left backdrop-blur-3xl transition-colors hover:border-mint/25 lg:hidden"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint/15">
-                <Search className="h-4 w-4 text-mint" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-white">{summary}</span>
-                {activeChips.length > 0 ? (
-                  <span className="mt-1 flex flex-wrap gap-1">
-                    {activeChips.map((chip) => (
-                      <span key={chip} className="rounded-md bg-mint/10 px-1.5 py-0.5 text-[10px] font-medium text-mint-glow">
-                        {chip}
-                      </span>
-                    ))}
+        <div className={cn(!sticky ? "" : "border-b border-white/5 bg-navy/90 backdrop-blur-2xl")}>
+          <div className="container-xl py-2.5 sm:py-3">
+            {/* Mobile — search + filter */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                className="flex min-h-[44px] flex-1 items-center gap-3 rounded-xl border border-white/15 bg-white/[0.06] px-3.5 py-2.5 text-left backdrop-blur-3xl transition-colors hover:border-mint/25"
+              >
+                <Search className="h-4 w-4 shrink-0 text-mint" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-white">{summary}</span>
+                  <span className="block truncate text-xs text-slate-dim">
+                    {cityLabel || contract || minSalary > 0 ? "Filtres actifs" : "Métier, ville, contrat…"}
                   </span>
-                ) : (
-                  <span className="mt-0.5 block text-xs text-slate-dim">Appuyez pour rechercher</span>
-                )}
-              </span>
-              <ChevronDown className="h-4 w-4 shrink-0 -rotate-90 text-slate-dim" />
-            </button>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 -rotate-90 text-slate-dim" />
+              </button>
+              {onOpenFilters && (
+                <FilterTriggerButton onClick={onOpenFilters} activeCount={filterCount} />
+              )}
+            </div>
 
             {/* Desktop — full inline form */}
             <motion.form

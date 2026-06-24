@@ -55,6 +55,20 @@ export const SALARY_ROLES = [
     tagSlug: "industrie",
     fallback: { min: 10000, median: 16000, max: 28000, trend: "+5%" },
   },
+  {
+    slug: "support-client-maroc",
+    title: "Support client",
+    keywords: ["support client", "customer support", "service client", "call center", "téléconseiller"],
+    tagSlug: "telecom",
+    fallback: { min: 4500, median: 7500, max: 11000, trend: "+4%" },
+  },
+  {
+    slug: "designer-maroc",
+    title: "Designer",
+    keywords: ["designer", "design graphique", "ux", "ui designer", "product designer"],
+    tagSlug: "marketing",
+    fallback: { min: 8000, median: 13000, max: 22000, trend: "+6%" },
+  },
 ] as const;
 
 export type SalaryRole = (typeof SALARY_ROLES)[number];

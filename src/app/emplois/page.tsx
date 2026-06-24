@@ -101,7 +101,6 @@ export default async function AllJobsPage({ searchParams: sp }: Props) {
         basePath="/emplois"
         heroTitle="Offres d'emploi au Maroc"
         heroSubtitle="Découvrez les meilleures opportunités professionnelles du royaume."
-        heroLabel="Explorer"
         breadcrumbs={[
           { label: "Accueil", href: "/" },
           { label: "Offres d'emploi" },

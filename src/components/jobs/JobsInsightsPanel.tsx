@@ -7,7 +7,6 @@ import { TrendingUp, BarChart3 } from "lucide-react";
 import { SALARY_DATA } from "@/lib/premium-data";
 import { MOROCCAN_COMPANY_LOGOS } from "@/lib/company-logos";
 import { AnimatedNumber } from "@/lib/motion";
-import { AiPromptCard } from "./JobCardVariants";
 
 const SIDEBAR_COMPANIES = [
   "attijariwafa-bank",
@@ -84,8 +83,6 @@ export function JobsInsightsPanel({ className }: { className?: string }) {
             ))}
           </div>
         </div>
-
-        <AiPromptCard />
       </div>
     </aside>
   );

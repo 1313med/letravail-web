@@ -30,7 +30,7 @@ export function Pagination({ currentPage, totalPages, basePath, searchParams = {
   }
 
   return (
-    <nav aria-label="Pagination" className="mt-12 flex items-center justify-center gap-2">
+    <nav aria-label="Pagination" className="mt-8 flex items-center justify-center gap-2">
       {currentPage > 1 && (
         <Link href={buildUrl(currentPage - 1)} className="btn-ghost !px-4 !py-2.5">← Préc.</Link>
       )}

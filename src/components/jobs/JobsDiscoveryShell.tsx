@@ -1,18 +1,20 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { JobListItem } from "@/lib/queries";
-import { JobsHero } from "./JobsHero";
+import { JobsContextBar } from "./JobsContextBar";
 import { JobsSearchBar } from "./JobsSearchBar";
-import { JobsFilterSidebar } from "./JobsFilterSidebar";
+import { ActiveFiltersBar } from "./ActiveFiltersBar";
+import { JobsStickyToolbar } from "./JobsStickyToolbar";
 import { JobsFeed } from "./JobsFeed";
-import { JobsInsightsPanel } from "./JobsInsightsPanel";
 import { JobsEmptyState } from "./JobsEmptyState";
-import { Pagination } from "@/components/Pagination";
-import { MobileFilterSheet } from "./MobileFilterSheet";
+import { LoadMoreJobs } from "./LoadMoreJobs";
 import { JobsBreadcrumbs } from "./JobsBreadcrumbs";
 import { JobsFAQ } from "./JobsFAQ";
-import { pluralize } from "@/lib/utils";
+import { JobsBelowFeed } from "./JobsBelowFeed";
+import { CollapsibleFilterSidebar, JobsFilterSheet } from "./JobsFilterSheet";
+import { buildChips } from "./active-filter-utils";
+import { cn } from "@/lib/cn";
 
 interface JobsDiscoveryShellProps {
   jobs: JobListItem[];
@@ -26,7 +28,6 @@ interface JobsDiscoveryShellProps {
   basePath: string;
   heroTitle: string;
   heroSubtitle: string;
-  heroLabel?: string;
   hideCityFilter?: boolean;
   fixedCity?: string;
   breadcrumbs: { label: string; href?: string }[];
@@ -45,79 +46,114 @@ export function JobsDiscoveryShell({
   basePath,
   heroTitle,
   heroSubtitle,
-  heroLabel,
   hideCityFilter,
   fixedCity,
   breadcrumbs,
   intro,
 }: JobsDiscoveryShellProps) {
+  const [filterOpen, setFilterOpen] = useState(false);
+
   const hasFilters = Boolean(
-    searchParams.q || searchParams.city || searchParams.contract ||
-    searchParams.tag || searchParams.remote || searchParams.experience ||
-    searchParams.minSalary || searchParams.company
+    searchParams.q ||
+      searchParams.city ||
+      searchParams.contract ||
+      searchParams.tag ||
+      searchParams.remote ||
+      searchParams.experience ||
+      searchParams.minSalary ||
+      searchParams.company
   );
 
+  const filterParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(searchParams)) {
+    if (v) filterParams.set(k, v);
+  }
+  const filterCount = buildChips(filterParams, tags, hideCityFilter).length;
+
   return (
-    <div className="section-dark min-h-screen">
-      <JobsHero title={heroTitle} subtitle={heroSubtitle} count={total} label={heroLabel} />
+    <div className="section-dark min-h-screen overflow-x-hidden">
+      <JobsContextBar title={heroTitle} subtitle={heroSubtitle} />
 
-      <Suspense fallback={null}>
-        <JobsSearchBar
+      <div
+        className={cn(
+          "sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-40 lg:top-20",
+          "bg-navy/95 backdrop-blur-2xl"
+        )}
+      >
+        <div className="border-b border-white/5">
+          <Suspense fallback={null}>
+            <JobsSearchBar
+              cities={cities}
+              contractTypes={contractTypes}
+              basePath={basePath}
+              initialQ={searchParams.q}
+              initialCity={fixedCity || searchParams.city}
+              initialContract={searchParams.contract}
+              initialMinSalary={searchParams.minSalary ? parseInt(searchParams.minSalary, 10) : 0}
+              onOpenFilters={() => setFilterOpen(true)}
+              filterCount={filterCount}
+              sticky={false}
+            />
+          </Suspense>
+        </div>
+
+        <Suspense fallback={null}>
+          <ActiveFiltersBar basePath={basePath} tags={tags} hideCity={hideCityFilter} />
+        </Suspense>
+
+        <JobsStickyToolbar
+          total={total}
+          searchParams={searchParams}
+          tags={tags}
           cities={cities}
-          contractTypes={contractTypes}
-          basePath={basePath}
-          initialQ={searchParams.q}
-          initialCity={fixedCity || searchParams.city}
-          initialContract={searchParams.contract}
-          initialMinSalary={searchParams.minSalary ? parseInt(searchParams.minSalary, 10) : 0}
+          hideCityFilter={hideCityFilter}
+          fixedCity={fixedCity}
         />
-      </Suspense>
+      </div>
 
-      <div className="container-xl py-8 sm:py-12 lg:py-16">
+      <div className="container-xl py-3 sm:py-4">
         <JobsBreadcrumbs items={breadcrumbs} />
 
         {intro}
 
-        <p className="mb-8 text-sm text-slate-muted">
-          {pluralize(total, "résultat", "résultats")}
-          {searchParams.q && <> pour « <span className="text-white">{searchParams.q}</span> »</>}
-        </p>
+        <div className="mt-2 flex gap-3 sm:mt-3 sm:gap-4">
+          <Suspense fallback={null}>
+            <CollapsibleFilterSidebar
+              basePath={basePath}
+              tags={tags}
+              hideCity={hideCityFilter}
+            />
+          </Suspense>
 
-        <div className="grid gap-8 xl:grid-cols-[260px_minmax(0,1fr)_300px] xl:gap-10">
-          <div className="hidden xl:block">
-            <div className="sticky top-36">
-              <Suspense fallback={null}>
-                <JobsFilterSidebar basePath={basePath} tags={tags} hideCity={hideCityFilter} />
-              </Suspense>
-            </div>
-          </div>
-
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             {jobs.length > 0 ? (
               <>
-                <JobsFeed jobs={jobs} />
-                <Pagination
-                  currentPage={page}
+                <JobsFeed jobs={jobs} skipFeatured={page > 1} />
+
+                <LoadMoreJobs
+                  initialPage={page}
                   totalPages={totalPages}
                   basePath={basePath}
                   searchParams={searchParams}
                 />
+
+                <JobsBelowFeed />
               </>
             ) : (
               <JobsEmptyState basePath={basePath} hasFilters={hasFilters} />
             )}
           </div>
-
-          <div className="hidden xl:block">
-            <div className="sticky top-36">
-              <JobsInsightsPanel />
-            </div>
-          </div>
         </div>
       </div>
 
       <Suspense fallback={null}>
-        <MobileFilterSheet basePath={basePath} tags={tags} hideCity={hideCityFilter} />
+        <JobsFilterSheet
+          basePath={basePath}
+          tags={tags}
+          hideCity={hideCityFilter}
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+        />
       </Suspense>
 
       <JobsFAQ />

@@ -129,7 +129,6 @@ export default async function CityJobsPage({ params, searchParams: sp }: Props) 
         basePath={`/emplois/${params.city}`}
         heroTitle={`Emploi à ${location.city}`}
         heroSubtitle={`Explorez les opportunités professionnelles à ${location.city} et trouvez votre prochain chapitre.`}
-        heroLabel={location.city}
         hideCityFilter
         fixedCity={params.city}
         breadcrumbs={[
