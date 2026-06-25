@@ -13,6 +13,7 @@ import { JobDetailFAQ, JobRelatedSearches } from "@/components/job-detail/JobDet
 import { SimilarJobsCarousel } from "@/components/job-detail/SimilarJobsCarousel";
 import { JobViewTracker } from "@/components/seo/JobViewTracker";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
+import { buildOgImageUrl } from "@/lib/og-images";
 import {
   parseJobSections,
   extractSkills,
@@ -47,6 +48,10 @@ export async function generateMetadata({ params }: Props) {
     description: excerpt(job.description, 155),
     path: `/emploi/${job.slug}`,
     noindex: expired,
+    ogImage: buildOgImageUrl("job", {
+      title: job.title,
+      subtitle: `${job.company} · ${job.city}`,
+    }),
   });
 }
 
@@ -95,6 +100,7 @@ export default async function JobDetailPage({ params }: Props) {
 
   const jobJsonLd = !expired
     ? buildJobPostingJsonLd({
+        id: job.id,
         slug: job.slug,
         title: job.title,
         description: job.description,
@@ -106,6 +112,7 @@ export default async function JobDetailPage({ params }: Props) {
         applicationUrl: job.applicationUrl,
         publishedAt: job.publishedAt,
         expiresAt: job.expiresAt,
+        createdAt: job.createdAt,
         salary: job.salary,
         citySlug: job.location?.slug,
         companySlug: job.companyRef?.slug,

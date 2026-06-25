@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   enrichJobPostingSchema,
+  executeAutopilotAction,
   fixInternalLinks,
   fixThinPages,
   generateMissingCityPages,
@@ -11,6 +12,7 @@ import {
   rebuildSitemaps,
   runFullGrowthPipeline,
 } from "@/lib/seo-engine/actions-engine";
+import type { AutopilotActionType } from "@/lib/seo-engine/types";
 import { syncGscFromApi, isGscConfigured } from "@/lib/seo-engine/gsc-engine";
 import type { SeoActionResult } from "@/lib/seo-engine/types";
 
@@ -24,6 +26,15 @@ export type GrowthActionName =
   | "fix-thin"
   | "full-pipeline"
   | "sync-gsc";
+
+export async function executeAutopilotActionById(
+  action: AutopilotActionType,
+  targetPath: string
+): Promise<SeoActionResult> {
+  const result = await executeAutopilotAction(action, targetPath);
+  revalidatePath("/admin/seo-dashboard");
+  return result;
+}
 
 export async function executeGrowthAction(
   action: GrowthActionName

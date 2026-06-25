@@ -1,60 +1,121 @@
-export interface CompanyLogo {
-  name: string;
+import { getSiteUrl } from "./constants";
+
+export type CompanyLogoEntry = {
   slug: string;
+  name: string;
   logo: string;
-  category: "banque" | "telecom" | "industrie" | "retail" | "tech" | "public" | "assurance";
-}
+};
 
-/** Curated Moroccan employers — logos from official site favicons + brand SVG fallbacks. */
-export const MOROCCAN_COMPANY_LOGOS: CompanyLogo[] = [
-  { name: "Attijariwafa Bank", slug: "attijariwafa-bank", logo: "/logos/attijariwafa-bank.png", category: "banque" },
-  { name: "CIH Bank", slug: "cih-bank", logo: "/logos/cih-bank.png", category: "banque" },
-  { name: "Bank of Africa", slug: "bank-of-africa", logo: "/logos/bank-of-africa.png", category: "banque" },
-  { name: "Banque Populaire", slug: "banque-populaire", logo: "/logos/banque-populaire.png", category: "banque" },
-  { name: "BMCI", slug: "bmci", logo: "/logos/bmci.png", category: "banque" },
-  { name: "Crédit Agricole", slug: "credit-agricole-maroc", logo: "/logos/credit-agricole.png", category: "banque" },
-  { name: "Société Générale", slug: "societe-generale-maroc", logo: "/logos/societe-generale.svg", category: "banque" },
-  { name: "CDM", slug: "credit-du-maroc", logo: "/logos/cdm.png", category: "banque" },
-  { name: "Bank Al-Maghrib", slug: "bank-al-maghrib", logo: "/logos/bank-al-maghrib.png", category: "banque" },
-  { name: "Maroc Telecom", slug: "maroc-telecom", logo: "/logos/maroc-telecom.png", category: "telecom" },
-  { name: "Orange Maroc", slug: "orange-maroc", logo: "/logos/orange-maroc.svg", category: "telecom" },
-  { name: "inwi", slug: "inwi", logo: "/logos/inwi.png", category: "telecom" },
-  { name: "OCP Group", slug: "ocp", logo: "/logos/ocp.png", category: "industrie" },
-  { name: "Royal Air Maroc", slug: "royal-air-maroc", logo: "/logos/royal-air-maroc.svg", category: "industrie" },
-  { name: "ONCF", slug: "oncf", logo: "/logos/oncf.png", category: "industrie" },
-  { name: "Managem", slug: "managem", logo: "/logos/managem.png", category: "industrie" },
-  { name: "LafargeHolcim", slug: "lafargeholcim-maroc", logo: "/logos/lafargeholcim.png", category: "industrie" },
-  { name: "Renault Maroc", slug: "renault-maroc", logo: "/logos/renault-maroc.png", category: "industrie" },
-  { name: "Stellantis", slug: "stellantis", logo: "/logos/stellantis.png", category: "industrie" },
-  { name: "Marjane", slug: "marjane", logo: "/logos/marjane.png", category: "retail" },
-  { name: "Label'Vie", slug: "labelvie", logo: "/logos/labelvie.png", category: "retail" },
-  { name: "Aswak Assalam", slug: "aswak-assalam", logo: "/logos/aswak-assalam.png", category: "retail" },
-  { name: "BIM", slug: "bim", logo: "/logos/bim.svg", category: "retail" },
-  { name: "Auto Hall", slug: "auto-hall", logo: "/logos/auto-hall.png", category: "retail" },
-  { name: "Capgemini", slug: "capgemini", logo: "/logos/capgemini.png", category: "tech" },
-  { name: "CGI", slug: "cgi", logo: "/logos/cgi.png", category: "tech" },
-  { name: "DXC Technology", slug: "dxc-technology", logo: "/logos/dxc-technology.png", category: "tech" },
-  { name: "Wafa Assurance", slug: "wafa-assurance", logo: "/logos/wafa-assurance.png", category: "assurance" },
-  { name: "RMA Watanya", slug: "rma-watanya", logo: "/logos/rma-watanya.png", category: "assurance" },
-  { name: "Saham Assurance", slug: "saham-assurance", logo: "/logos/saham-assurance.png", category: "assurance" },
-  { name: "AXA Assurance", slug: "axa-maroc", logo: "/logos/axa-maroc.png", category: "assurance" },
-  { name: "CDG", slug: "cdg", logo: "/logos/cdg.svg", category: "public" },
-  { name: "ANAPEC", slug: "anapec", logo: "/logos/anapec.svg", category: "public" },
-  { name: "Emploi Public", slug: "emploi-public", logo: "/logos/emploi-public.svg", category: "public" },
-  { name: "ONEE", slug: "onee", logo: "/logos/onee.png", category: "public" },
-  { name: "MASEN", slug: "masen", logo: "/logos/masen.png", category: "public" },
-];
-
-export const LOGO_CATEGORIES = [
-  "Banques",
-  "Télécoms",
-  "Industrie",
-  "Retail",
-  "Tech",
-  "Assurances",
-  "Secteur public",
+const LOGO_FILES = [
+  "attijariwafa-bank",
+  "cih-bank",
+  "ocp",
+  "maroc-telecom",
+  "orange-maroc",
+  "dxc-technology",
+  "bank-of-africa",
+  "banque-populaire",
+  "bmci",
+  "credit-agricole",
+  "societe-generale",
+  "cdm",
+  "bank-al-maghrib",
+  "inwi",
+  "royal-air-maroc",
+  "oncf",
+  "lafargeholcim",
+  "managem",
+  "stellantis",
+  "marjane",
+  "labelvie",
+  "aswak-assalam",
+  "bim",
+  "capgemini",
+  "auto-hall",
+  "cgi",
+  "wafa-assurance",
+  "rma-watanya",
+  "saham-assurance",
+  "axa-maroc",
+  "cdg",
+  "anapec",
+  "emploi-public",
+  "onee",
+  "masen",
+  "renault-maroc",
 ] as const;
 
-export function getCompanyLogo(slug: string): CompanyLogo | undefined {
-  return MOROCCAN_COMPANY_LOGOS.find((c) => c.slug === slug);
+const DISPLAY_NAMES: Record<string, string> = {
+  "attijariwafa-bank": "Attijariwafa Bank",
+  "cih-bank": "CIH Bank",
+  ocp: "OCP",
+  "maroc-telecom": "Maroc Telecom",
+  "orange-maroc": "Orange Maroc",
+  "dxc-technology": "DXC Technology",
+  "bank-of-africa": "Bank of Africa",
+  "banque-populaire": "Banque Populaire",
+  bmci: "BMCI",
+  "credit-agricole": "Crédit Agricole",
+  "societe-generale": "Société Générale",
+  cdm: "CDM",
+  "bank-al-maghrib": "Bank Al-Maghrib",
+  inwi: "Inwi",
+  "royal-air-maroc": "Royal Air Maroc",
+  oncf: "ONCF",
+  lafargeholcim: "LafargeHolcim",
+  managem: "Managem",
+  stellantis: "Stellantis",
+  marjane: "Marjane",
+  labelvie: "LabelVie",
+  "aswak-assalam": "Aswak Assalam",
+  bim: "BIM",
+  capgemini: "Capgemini",
+  "auto-hall": "Auto Hall",
+  cgi: "CGI",
+  "wafa-assurance": "Wafa Assurance",
+  "rma-watanya": "RMA Watanya",
+  "saham-assurance": "Saham Assurance",
+  "axa-maroc": "AXA Maroc",
+  cdg: "CDG",
+  anapec: "ANAPEC",
+  "emploi-public": "Emploi Public",
+  onee: "ONEE",
+  masen: "MASEN",
+  "renault-maroc": "Renault Maroc",
+};
+
+export const MOROCCAN_COMPANY_LOGOS: CompanyLogoEntry[] = LOGO_FILES.map((slug) => ({
+  slug,
+  name: DISPLAY_NAMES[slug] ?? slug,
+  logo: `/logos/${slug}.svg`,
+}));
+
+export function getCompanyLogo(slug: string): { logo: string; name: string } | undefined {
+  const entry = MOROCCAN_COMPANY_LOGOS.find((c) => c.slug === slug);
+  if (!entry) return undefined;
+  return { logo: entry.logo, name: entry.name };
+}
+
+export function getCompanyLogoUrl(companySlug: string | null | undefined): string | null {
+  if (!companySlug) return null;
+  const entry = getCompanyLogo(companySlug);
+  if (!entry) return null;
+  return `${getSiteUrl()}${entry.logo}`;
+}
+
+export function getCompanyWebsiteUrl(companySlug: string | null | undefined): string | null {
+  const sites: Record<string, string> = {
+    "attijariwafa-bank": "https://www.attijariwafabank.com",
+    "cih-bank": "https://www.cihbank.ma",
+    ocp: "https://www.ocpgroup.ma",
+    "maroc-telecom": "https://www.iam.ma",
+    "orange-maroc": "https://www.orange.ma",
+    inwi: "https://www.inwi.ma",
+    "royal-air-maroc": "https://www.royalairmaroc.com",
+    oncf: "https://www.oncf.ma",
+    marjane: "https://www.marjane.ma",
+    capgemini: "https://www.capgemini.com",
+  };
+  if (!companySlug) return null;
+  return sites[companySlug] ?? null;
 }

@@ -1,9 +1,12 @@
 import { Metadata } from "next";
 import { getSiteUrl, SITE_LOCALE, SITE_NAME } from "./constants";
+import { getCompanyLogoUrl, getCompanyWebsiteUrl } from "./company-logos";
+import { defaultValidThrough } from "./google-jobs-compliance";
 import { resolveJobPostingSalary } from "./job-salary-schema";
 import { mapContractType } from "./utils";
 
 interface JobForSchema {
+  id?: string;
   slug: string;
   title: string;
   description: string;
@@ -15,6 +18,7 @@ interface JobForSchema {
   applicationUrl: string;
   publishedAt: Date | null;
   expiresAt: Date | null;
+  createdAt?: Date;
   salary?: string | null;
   citySlug?: string | null;
   companySlug?: string | null;
@@ -93,17 +97,35 @@ export function buildBreadcrumbJsonLd(
 
 export function buildJobPostingJsonLd(job: JobForSchema): object {
   const siteUrl = getSiteUrl();
+  const jobUrl = `${siteUrl}/emploi/${job.slug}`;
+  const datePosted = (job.publishedAt ?? job.createdAt ?? new Date()).toISOString();
+  const validThrough = defaultValidThrough(job.publishedAt, job.expiresAt);
+
+  const hiringOrg: Record<string, unknown> = {
+    "@type": "Organization",
+    name: job.company,
+  };
+
+  const logo = getCompanyLogoUrl(job.companySlug);
+  if (logo) hiringOrg.logo = logo;
+
+  const sameAs = getCompanyWebsiteUrl(job.companySlug);
+  if (sameAs) hiringOrg.sameAs = sameAs;
+
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "JobPosting",
+    identifier: {
+      "@type": "PropertyValue",
+      name: "Letravail.ma",
+      value: job.id ?? job.slug,
+    },
     title: job.title,
     description: job.description,
-    datePosted: job.publishedAt?.toISOString() || new Date().toISOString(),
+    datePosted,
+    validThrough,
     employmentType: mapContractType(job.contractType),
-    hiringOrganization: {
-      "@type": "Organization",
-      name: job.company,
-    },
+    hiringOrganization: hiringOrg,
     jobLocation: {
       "@type": "Place",
       address: {
@@ -112,7 +134,11 @@ export function buildJobPostingJsonLd(job: JobForSchema): object {
         addressCountry: "MA",
       },
     },
-    url: `${siteUrl}/emploi/${job.slug}`,
+    occupationLocation: {
+      "@type": "Country",
+      name: "Morocco",
+    },
+    url: jobUrl,
     directApply: true,
     applicationContact: {
       "@type": "ContactPoint",
@@ -120,12 +146,12 @@ export function buildJobPostingJsonLd(job: JobForSchema): object {
     },
   };
 
-  if (job.expiresAt) {
-    jsonLd.validThrough = job.expiresAt.toISOString();
-  }
-
   if (job.remote) {
     jsonLd.jobLocationType = "TELECOMMUTE";
+    jsonLd.applicantLocationRequirements = {
+      "@type": "Country",
+      name: "Morocco",
+    };
   }
 
   const resolved = resolveJobPostingSalary({
@@ -220,6 +246,26 @@ export function buildCompanyOrganizationJsonLd(company: {
       value: company.jobCount,
       unitText: "offres actives",
     },
+  };
+}
+
+export function buildProfessionJsonLd(profession: {
+  name: string;
+  path: string;
+  jobCount: number;
+  skills: string[];
+}): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Occupation",
+    name: profession.name,
+    occupationLocation: {
+      "@type": "Country",
+      name: "Morocco",
+    },
+    skills: profession.skills.join(", "),
+    url: buildCanonical(profession.path),
+    description: `${profession.jobCount} offres d'emploi ${profession.name} au Maroc sur Letravail.ma.`,
   };
 }
 

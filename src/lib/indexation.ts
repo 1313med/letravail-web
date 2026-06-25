@@ -1,6 +1,7 @@
 import {
   MIN_JOBS_FOR_CITY_INDEX,
   MIN_JOBS_FOR_LANDING_INDEX,
+  MIN_JOBS_FOR_PROFESSION_INDEX,
   MIN_OBSERVATIONS_FOR_SALARY_INDEX,
 } from "./constants";
 
@@ -29,6 +30,10 @@ export function shouldNoindexListing(
   if (hasListingFilters(searchParams)) return true;
   if (jobCount !== undefined && jobCount < minJobs) return true;
   return false;
+}
+
+export function shouldNoindexProfession(jobCount: number): boolean {
+  return jobCount < MIN_JOBS_FOR_PROFESSION_INDEX;
 }
 
 export function shouldNoindexLanding(jobCount: number): boolean {

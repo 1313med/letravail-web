@@ -49,6 +49,8 @@ model Company {
   id        String   @id @default(cuid())
   name      String   @unique
   slug      String   @unique
+  logoUrl   String?
+  websiteUrl String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   jobs      Job[]
@@ -119,6 +121,34 @@ model JobTitleTaxonomy {
 
   @@index([sectorSlug])
   @@map("job_title_taxonomy")
+}
+
+/// First-class profession entity — powers profession pages, salary links, knowledge graph
+model Profession {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  aliases      String[] @default([])
+  sectorSlug   String?
+  skills       String[] @default([])
+  salarySlug   String?
+  relatedSlugs String[] @default([])
+  keywords     String[] @default([])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([sectorSlug])
+  @@index([salarySlug])
+  @@map("professions")
+}
+
+model Skill {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("skills")
 }
 
 model SalaryObservation {
@@ -224,4 +254,24 @@ model SeoActionLog {
   @@index([action])
   @@index([createdAt])
   @@map("seo_action_logs")
+}
+
+model SerpIntelligenceRecord {
+  id                 String    @id @default(cuid())
+  provider           String
+  keyword            String
+  pagePath           String?
+  ourPosition        Float?
+  competitorDomain   String?
+  competitorPosition Float?
+  searchVolume       Int?
+  capturedAt         DateTime  @default(now())
+  periodStart        DateTime?
+  periodEnd          DateTime?
+  raw                Json      @default("{}")
+
+  @@index([keyword])
+  @@index([provider])
+  @@index([capturedAt])
+  @@map("serp_intelligence_records")
 }

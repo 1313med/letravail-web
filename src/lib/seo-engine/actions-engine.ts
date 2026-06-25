@@ -1,6 +1,11 @@
 import { revalidatePath } from "next/cache";
 import { logSeoActionSafe } from "./seo-db";
 import {
+  generateCityPageContent,
+  generateSalaryPageContent,
+  generateCompanyPageContent,
+} from "./content-generation-engine";
+import {
   MIN_JOBS_FOR_CITY_INDEX,
   MIN_JOBS_FOR_LANDING_INDEX,
   MIN_OBSERVATIONS_FOR_SALARY_INDEX,
@@ -372,4 +377,74 @@ export async function runFullGrowthPipeline(): Promise<SeoActionResult> {
   });
 
   return { ok: true, message, details: { steps: results } };
+}
+
+export async function executeAutopilotAction(
+  action: import("./types").AutopilotActionType,
+  targetPath: string
+): Promise<import("./types").SeoActionResult> {
+  let message = "";
+  const path = targetPath.startsWith("/") ? targetPath : `/${targetPath}`;
+
+  switch (action) {
+    case "revalidate_page":
+      revalidatePath(path);
+      message = `Page revalidée : ${path}`;
+      break;
+    case "refresh_metadata":
+      revalidatePath(path);
+      message = `Metadata ISR invalidée pour ${path}`;
+      break;
+    case "add_internal_links":
+      await fixInternalLinks();
+      revalidatePath(path);
+      message = `Maillage interne enrichi + revalidation ${path}`;
+      break;
+    case "regenerate_content": {
+      if (path.startsWith("/emplois/")) {
+        const slug = path.replace("/emplois/", "").split("?")[0];
+        const content = await generateCityPageContent(slug);
+        revalidatePath(path);
+        message = content
+          ? `Contenu ville régénéré (${content.blocks.length} blocs)`
+          : `Revalidation ${path} — seuil non atteint`;
+      } else if (path.startsWith("/salaire-")) {
+        const roleSlug = path.replace("/salaire-", "");
+        const content = await generateSalaryPageContent(roleSlug);
+        revalidatePath(path);
+        message = content
+          ? `Contenu salaire régénéré (${content.blocks.length} blocs)`
+          : `Revalidation ${path}`;
+      } else if (path.startsWith("/entreprise/")) {
+        const slug = path.replace("/entreprise/", "");
+        const content = await generateCompanyPageContent(slug);
+        revalidatePath(path);
+        message = content
+          ? `Contenu entreprise régénéré (${content.blocks.length} blocs)`
+          : `Revalidation ${path}`;
+      } else {
+        revalidatePath(path);
+        message = `Contenu revalidé : ${path}`;
+      }
+      break;
+    }
+    case "regenerate_faq":
+      revalidatePath(path);
+      message = `FAQ/blocs revalidés : ${path}`;
+      break;
+    case "rebuild_schema":
+      await enrichJobPostingSchema();
+      revalidatePath(path);
+      message = `Schema JobPosting enrichi + ${path} revalidé`;
+      break;
+    default:
+      return { ok: false, message: "Action autopilot inconnue" };
+  }
+
+  await logSeoActionSafe("executeAutopilotAction", "success", message, {
+    action,
+    targetPath: path,
+  });
+
+  return { ok: true, message };
 }

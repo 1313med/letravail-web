@@ -4,6 +4,7 @@ import {
   JOBS_PER_PAGE,
   MIN_JOBS_FOR_CITY_INDEX,
   MIN_JOBS_FOR_LANDING_INDEX,
+  MIN_JOBS_FOR_PROFESSION_INDEX,
   MIN_OBSERVATIONS_FOR_SALARY_INDEX,
 } from "./constants";
 import { DISCOVERY_EXPERIENCE_LEVELS } from "./jobs-discovery";
@@ -12,6 +13,11 @@ import {
   landingToJobFilters,
   parseLandingSlug,
 } from "./landing-pages";
+import {
+  professionJobWhere,
+  type ProfessionSeed,
+} from "./profession-taxonomy";
+import { getIndexableProfessionSlugs } from "./knowledge-graph";
 import { SALARY_ROLES, median, percentile, salaryPublicSlug } from "./salary-data";
 import { shouldNoindexSalaryPage } from "./indexation";
 import { parseSalaryRange } from "./job-detail";
@@ -421,6 +427,42 @@ export async function getSalaryStatsForRole(roleSlug: string) {
 
   return { role, stats: computed, jobs, observationCount };
 }
+
+export async function getProfessionJobs(
+  profession: ProfessionSeed,
+  filters: Omit<JobFilters, "q"> = {}
+) {
+  const page = Math.max(1, filters.page || 1);
+  const where: Prisma.JobWhereInput = {
+    AND: [buildJobWhere({ ...filters, includeExpired: filters.includeExpired }), professionJobWhere(profession)],
+  };
+
+  const [rawJobs, total] = await Promise.all([
+    prisma.job.findMany({
+      where,
+      select: jobListSelect,
+      orderBy: jobListOrderBy,
+      skip: (page - 1) * JOBS_PER_PAGE,
+      take: JOBS_PER_PAGE,
+    }),
+    prisma.job.count({ where }),
+  ]);
+
+  return {
+    jobs: rawJobs.map(mapJobRow),
+    total,
+    page,
+    totalPages: Math.ceil(total / JOBS_PER_PAGE),
+  };
+}
+
+export async function getProfessionJobCount(profession: ProfessionSeed) {
+  return prisma.job.count({
+    where: { AND: [activeJobsWhere(), professionJobWhere(profession)] },
+  });
+}
+
+export { getIndexableProfessionSlugs };
 
 export async function getTotalJobCount() {
   return prisma.job.count({ where: activeJobsWhere() });

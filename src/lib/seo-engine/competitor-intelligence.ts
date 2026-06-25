@@ -12,13 +12,23 @@ import {
   classifyKeywordIntent,
   mapKeywordToPage,
 } from "./keyword-intelligence";
-import { getLatestGscPeriod } from "./seo-db";
+import {
+  countSerpIntelligenceRecords,
+  createSerpIntelligenceRecord,
+  getLatestGscPeriod,
+  getLatestSerpCaptureAt,
+} from "./seo-db";
+import { Prisma } from "@prisma/client";
 import type {
   CompetitorGap,
   CompetitorIntelligenceReport,
   CompetitorName,
+  CompetitorSerpLayer,
   CompetitorStructureGap,
   SerpOpportunityClass,
+  SerpProviderCapabilities,
+  SerpProviderId,
+  SerpProviderStatus,
 } from "./types";
 
 const COMPETITOR_INTENT_MAP: Record<string, CompetitorName> = {
@@ -184,4 +194,104 @@ export async function getCompetitorIntelligenceReport(): Promise<CompetitorIntel
       "theirPosition=null : positions concurrents non suivies (pas de SERP API). Analyse basée sur GSC réel + structure de couverture.",
     generatedAt: new Date().toISOString(),
   };
+}
+
+const PROVIDER_CAPS: Record<SerpProviderId, SerpProviderCapabilities> = {
+  dataforseo: {
+    keywordGapAnalysis: true,
+    serpOwnership: true,
+    competitorRankings: true,
+    attackOpportunities: true,
+  },
+  ahrefs: {
+    keywordGapAnalysis: true,
+    serpOwnership: true,
+    competitorRankings: true,
+    attackOpportunities: true,
+  },
+  semrush: {
+    keywordGapAnalysis: true,
+    serpOwnership: true,
+    competitorRankings: true,
+    attackOpportunities: false,
+  },
+  gsc: {
+    keywordGapAnalysis: true,
+    serpOwnership: false,
+    competitorRankings: false,
+    attackOpportunities: true,
+  },
+};
+
+function isProviderConfigured(id: SerpProviderId): boolean {
+  switch (id) {
+    case "dataforseo":
+      return Boolean(process.env.DATAFORSEO_LOGIN && process.env.DATAFORSEO_PASSWORD);
+    case "ahrefs":
+      return Boolean(process.env.AHREFS_API_TOKEN);
+    case "semrush":
+      return Boolean(process.env.SEMRUSH_API_KEY);
+    case "gsc":
+      return Boolean(
+        process.env.GSC_SERVICE_ACCOUNT_EMAIL && process.env.GSC_PRIVATE_KEY
+      );
+  }
+}
+
+export async function getCompetitorSerpLayer(): Promise<CompetitorSerpLayer> {
+  const storedRecords = await countSerpIntelligenceRecords();
+  const lastSync = await getLatestSerpCaptureAt();
+
+  const providerIds: SerpProviderId[] = ["dataforseo", "ahrefs", "semrush", "gsc"];
+  const providers: SerpProviderStatus[] = providerIds.map((id) => ({
+    id,
+    name: id === "gsc" ? "Google Search Console" : id.charAt(0).toUpperCase() + id.slice(1),
+    configured: isProviderConfigured(id),
+    lastSyncAt: id === "gsc" && lastSync ? lastSync.toISOString() : null,
+    recordCount: id === "gsc" ? storedRecords : 0,
+  }));
+
+  const anySerpProvider = providers.some(
+    (p) => p.id !== "gsc" && p.configured
+  );
+
+  return {
+    providers,
+    capabilities: PROVIDER_CAPS,
+    storedRecords,
+    readyForRealSerp: anySerpProvider && storedRecords > 0,
+    dataNote: anySerpProvider
+      ? "Provider configuré — prêt pour ingestion SERP réelle."
+      : "Connectez DataForSEO, Ahrefs ou SEMrush pour débloquer rankings concurrents réels. Aucune position inventée.",
+  };
+}
+
+/** Future: ingest provider payload into SerpIntelligenceRecord */
+export async function ingestSerpProviderRecords(
+  provider: SerpProviderId,
+  rows: {
+    keyword: string;
+    pagePath?: string;
+    ourPosition?: number;
+    competitorDomain?: string;
+    competitorPosition?: number;
+    searchVolume?: number;
+    raw?: Record<string, unknown>;
+  }[]
+) {
+  let inserted = 0;
+  for (const row of rows) {
+    await createSerpIntelligenceRecord({
+      provider,
+      keyword: row.keyword,
+      pagePath: row.pagePath ?? null,
+      ourPosition: row.ourPosition ?? null,
+      competitorDomain: row.competitorDomain ?? null,
+      competitorPosition: row.competitorPosition ?? null,
+      searchVolume: row.searchVolume ?? null,
+      raw: (row.raw ?? {}) as Prisma.InputJsonValue,
+    });
+    inserted++;
+  }
+  return { inserted };
 }

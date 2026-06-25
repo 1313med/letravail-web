@@ -2,6 +2,7 @@ export type {
   GoogleJobsHealth,
   GrowthEngineBundle,
   GrowthForecastItem,
+  GrowthOrchestratorReport,
   GscInsightsReport,
   GscPageInsight,
   IndexationReport,
@@ -31,10 +32,20 @@ export type {
   CompetitorIntelligenceReport,
   CompetitorGap,
   CompetitorStructureGap,
+  CompetitorSerpLayer,
   ContentGenerationReport,
   GeneratedPageContent,
   ContentBlock,
   SeoIntelligenceBundle,
+  SeoAutopilotReport,
+  SeoHealthScore,
+  QuickWinItem,
+  AutopilotActionItem,
+  AutopilotActionType,
+  DemandIntelligenceReport,
+  OrchestratorPriorityItem,
+  GraphEntityType,
+  PageGraphContext,
 } from "./types";
 
 export {
@@ -63,6 +74,7 @@ export {
   enrichJobPostingSchema,
   fixThinPages,
   runFullGrowthPipeline,
+  executeAutopilotAction,
 } from "./actions-engine";
 
 export { getOpportunitiesReport, buildGrowthForecast } from "./opportunities";
@@ -81,12 +93,16 @@ export {
   getGrowthEngineBundle,
   getSeoIntelligenceBundle,
   computePageScores,
+  buildGrowthOrchestrator,
 } from "./growth";
 
 export {
   computePageScore,
+  computeSeoHealthScore,
   computePagePerformanceScore,
   expectedCtrForPosition,
+  estimateTrafficGainFromGsc,
+  confidenceFromSignals,
 } from "./page-scoring";
 
 export {
@@ -94,6 +110,9 @@ export {
   detectMissingLinkTypes,
   matchSalaryRole,
   estimateTrafficGain,
+  discoverCityPageLinks,
+  buildInternalLinkAutopilotBatch,
+  getPageGraphContext,
 } from "./internal-links";
 
 export {
@@ -109,7 +128,11 @@ export {
   getInternalLinkRecommendationsForPage,
 } from "./ranking-feedback-engine";
 
-export { getCompetitorIntelligenceReport } from "./competitor-intelligence";
+export {
+  getCompetitorIntelligenceReport,
+  getCompetitorSerpLayer,
+  ingestSerpProviderRecords,
+} from "./competitor-intelligence";
 
 export {
   getContentGenerationReport,
@@ -117,3 +140,7 @@ export {
   generateSalaryPageContent,
   generateCompanyPageContent,
 } from "./content-generation-engine";
+
+export { getSeoAutopilotReport } from "./autopilot";
+
+export { getDemandIntelligenceReport } from "./demand-intelligence";

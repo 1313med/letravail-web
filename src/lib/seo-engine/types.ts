@@ -209,6 +209,9 @@ export interface GrowthEngineBundle {
     createdAt: string;
   }[];
   intelligence: SeoIntelligenceBundle;
+  autopilot: SeoAutopilotReport;
+  demand: DemandIntelligenceReport;
+  orchestrator: GrowthOrchestratorReport;
   generatedAt: string;
 }
 
@@ -367,5 +370,226 @@ export interface SeoIntelligenceBundle {
   ranking: RankingFeedbackReport;
   competitors: CompetitorIntelligenceReport;
   content: ContentGenerationReport;
+  serpLayer?: CompetitorSerpLayer;
+  generatedAt: string;
+}
+
+// --- SEO Autopilot ---
+
+export type AutopilotActionType =
+  | "regenerate_content"
+  | "regenerate_faq"
+  | "rebuild_schema"
+  | "refresh_metadata"
+  | "add_internal_links"
+  | "revalidate_page";
+
+export interface SeoHealthScore {
+  pagePath: string;
+  pageType: PageType;
+  label: string;
+  score: number;
+  indexationScore: number;
+  internalLinksScore: number;
+  ctrScore: number;
+  positionScore: number;
+  schemaScore: number;
+  contentDepthScore: number;
+  freshnessScore: number;
+  issues: string[];
+  opportunities: string[];
+  estimatedTrafficGain: number;
+  impressions: number;
+  position: number;
+  ctr: number;
+}
+
+export interface QuickWinItem {
+  pagePath: string;
+  pageType: PageType;
+  label: string;
+  position: number;
+  impressions: number;
+  ctr: number;
+  benchmarkCtr: number;
+  estimatedTrafficGain: number;
+  confidence: number;
+  suggestedAction: AutopilotActionType;
+  actionLabel: string;
+}
+
+export interface AutopilotActionItem {
+  id: string;
+  action: AutopilotActionType;
+  label: string;
+  targetPath: string;
+  expectedImpact: string;
+  confidence: number;
+  estimatedTrafficGain: number;
+  source: string;
+}
+
+export interface InternalLinkAutopilotItem {
+  sourcePath: string;
+  sourceLabel: string;
+  recommendedLinks: {
+    href: string;
+    label: string;
+    reason: string;
+    entityType: GraphEntityType;
+    jobCount?: number;
+  }[];
+  missingLinkCount: number;
+  estimatedTrafficGain: number;
+}
+
+export interface SeoAutopilotReport {
+  healthScores: SeoHealthScore[];
+  quickWinQueue: QuickWinItem[];
+  actionQueue: AutopilotActionItem[];
+  linkAutopilot: InternalLinkAutopilotItem[];
+  summary: {
+    avgHealthScore: number;
+    pagesNeedingAction: number;
+    totalEstimatedGain: number;
+    topPriorityPath: string | null;
+  };
+  generatedAt: string;
+}
+
+// --- Knowledge Graph ---
+
+export type GraphEntityType =
+  | "CITY"
+  | "COMPANY"
+  | "PROFESSION"
+  | "SKILL"
+  | "SECTOR"
+  | "SALARY"
+  | "JOB"
+  | "CONTRACT"
+  | "EXPERIENCE";
+
+export interface GraphEntity {
+  type: GraphEntityType;
+  id: string;
+  label: string;
+  slug?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  from: GraphEntity;
+  to: GraphEntity;
+  relationship: string;
+  weight: number;
+}
+
+export interface PageGraphContext {
+  pagePath: string;
+  entities: GraphEntity[];
+  relatedPages: {
+    path: string;
+    label: string;
+    reason: string;
+    score: number;
+  }[];
+}
+
+// --- Demand Intelligence ---
+
+export type TrendWindow = "7d" | "30d" | "90d";
+
+export interface TrendPoint {
+  window: TrendWindow;
+  current: number;
+  previous: number;
+  delta: number;
+  deltaPct: number;
+  trend: "up" | "down" | "stable";
+}
+
+export interface HiringTrendItem {
+  label: string;
+  slug?: string;
+  type: "profession" | "city" | "company" | "sector";
+  trends: TrendPoint[];
+  totalActive: number;
+}
+
+export interface SkillTrendItem {
+  skill: string;
+  slug: string;
+  frequency: number;
+  trends: TrendPoint[];
+  momentumScore: number;
+}
+
+export interface DemandIntelligenceReport {
+  hiringTrends: {
+    byProfession: HiringTrendItem[];
+    byCity: HiringTrendItem[];
+    byCompany: HiringTrendItem[];
+    bySector: HiringTrendItem[];
+  };
+  skillTrends: {
+    fastestGrowing: SkillTrendItem[];
+    fastestDeclining: SkillTrendItem[];
+  };
+  market: {
+    fastestGrowingJobs: { title: string; delta: number; count: number }[];
+    fastestGrowingCities: { city: string; slug: string; delta: number; count: number }[];
+    mostActiveRecruiters: { company: string; slug: string; jobCount: number; delta: number }[];
+    fastestGrowingSectors: { sector: string; slug: string; delta: number; count: number }[];
+    highestPayingProfessions: { role: string; medianSalary: number; observations: number }[];
+  };
+  generatedAt: string;
+}
+
+// --- Competitor SERP Providers ---
+
+export type SerpProviderId = "dataforseo" | "ahrefs" | "semrush" | "gsc";
+
+export interface SerpProviderStatus {
+  id: SerpProviderId;
+  name: string;
+  configured: boolean;
+  lastSyncAt: string | null;
+  recordCount: number;
+}
+
+export interface SerpProviderCapabilities {
+  keywordGapAnalysis: boolean;
+  serpOwnership: boolean;
+  competitorRankings: boolean;
+  attackOpportunities: boolean;
+}
+
+export interface CompetitorSerpLayer {
+  providers: SerpProviderStatus[];
+  capabilities: Record<SerpProviderId, SerpProviderCapabilities>;
+  storedRecords: number;
+  readyForRealSerp: boolean;
+  dataNote: string;
+}
+
+// --- Growth Orchestrator ---
+
+export interface OrchestratorPriorityItem {
+  rank: number;
+  title: string;
+  targetPath: string;
+  action: AutopilotActionType;
+  potentialGain: number;
+  confidence: number;
+  source: string;
+  rationale: string;
+  actionId: string;
+}
+
+export interface GrowthOrchestratorReport {
+  topAction: OrchestratorPriorityItem | null;
+  priorities: OrchestratorPriorityItem[];
+  totalPotentialGain: number;
   generatedAt: string;
 }

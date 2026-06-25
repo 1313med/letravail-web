@@ -16,10 +16,49 @@ export function SeoIntelligenceTab({
 }: {
   intelligence: SeoIntelligenceBundle;
 }) {
-  const { keywords, ranking, competitors, content } = intelligence;
+  const { keywords, ranking, competitors, content, serpLayer } = intelligence;
 
   return (
     <div className="grid gap-6">
+      {serpLayer && (
+        <Panel
+          title="SERP Intelligence Layer"
+          subtitle={serpLayer.dataNote}
+          accent="purple"
+        >
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              label="Records stockés"
+              value={serpLayer.storedRecords}
+            />
+            <StatCard
+              label="Prêt SERP réel"
+              value={serpLayer.readyForRealSerp ? "Oui" : "Non"}
+              tone={serpLayer.readyForRealSerp ? "good" : "warn"}
+            />
+          </div>
+          <DataTable headers={["Provider", "Configuré", "Records", "Dernière sync"]}>
+            {serpLayer.providers.map((p) => (
+              <tr key={p.id} className="hover:bg-navy/[0.02]">
+                <td className="px-3 py-2 font-medium">{p.name}</td>
+                <td className="px-3 py-2">
+                  <Badge tone={p.configured ? "good" : "warn"}>
+                    {p.configured ? "Oui" : "Non"}
+                  </Badge>
+                </td>
+                <td className="px-3 py-2 tabular-nums">{p.recordCount}</td>
+                <td className="px-3 py-2 text-xs text-slate-dim">
+                  {p.lastSyncAt ? new Date(p.lastSyncAt).toLocaleDateString("fr-FR") : "—"}
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+          <p className="mt-3 text-xs text-slate-dim">
+            Capacités futures : keyword gap, SERP ownership, rankings concurrents, attack opportunities — débloquées à la connexion d&apos;un provider.
+          </p>
+        </Panel>
+      )}
+
       <Panel
         title="Keyword Opportunities"
         subtitle={`${keywords.summary.totalKeywords} mots-clés — ${keywords.summary.unmapped} sans page mappée`}

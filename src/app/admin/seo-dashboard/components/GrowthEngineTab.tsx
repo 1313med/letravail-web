@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 import {
   executeGrowthAction,
+  executeAutopilotActionById,
   type GrowthActionName,
 } from "../growth-actions";
-import type { GrowthEngineBundle } from "@/lib/seo-engine/types";
+import type { AutopilotActionType, GrowthEngineBundle } from "@/lib/seo-engine/types";
 import { Badge, DataTable, Panel, StatCard } from "./ui";
 
 const GROWTH_ACTIONS: {
@@ -79,10 +80,236 @@ export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
     });
   }
 
-  const { opportunities, forecast, gsc, pageScores, recentActionLogs } = data;
+  function runAutopilot(action: AutopilotActionType, targetPath: string) {
+    startTransition(async () => {
+      const result = await executeAutopilotActionById(action, targetPath);
+      setLastResult(result.message);
+    });
+  }
+
+  const {
+    opportunities,
+    forecast,
+    gsc,
+    pageScores,
+    recentActionLogs,
+    autopilot,
+    demand,
+    orchestrator,
+  } = data;
 
   return (
     <div className="grid gap-6">
+      {orchestrator.topAction && (
+        <Panel
+          title="Growth Orchestrator — #1 ROI Action"
+          subtitle={`Potentiel total : +${orchestrator.totalPotentialGain} clics estimés`}
+          accent="purple"
+        >
+          <div className="rounded-xl border-2 border-mint/30 bg-gradient-to-r from-navy/5 to-mint/5 p-5">
+            <p className="text-lg font-bold text-navy">
+              {orchestrator.topAction.rank}. {orchestrator.topAction.title}
+            </p>
+            <p className="mt-1 text-sm text-slate-dim">
+              {orchestrator.topAction.targetPath} — {orchestrator.topAction.rationale}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3 text-sm">
+              <span className="font-semibold text-emerald-600">
+                +{orchestrator.topAction.potentialGain} clics
+              </span>
+              <span>Confiance {orchestrator.topAction.confidence}%</span>
+              <Badge>{orchestrator.topAction.action}</Badge>
+            </div>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                runAutopilot(
+                  orchestrator.topAction!.action,
+                  orchestrator.topAction!.targetPath
+                )
+              }
+              className="mt-4 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700 disabled:opacity-50"
+            >
+              Exécuter maintenant
+            </button>
+          </div>
+          <DataTable
+            headers={["#", "Action", "Gain", "Conf.", "Source"]}
+          >
+            {orchestrator.priorities.slice(1, 8).map((p) => (
+              <tr key={p.actionId} className="hover:bg-navy/[0.02]">
+                <td className="px-3 py-2 tabular-nums">{p.rank}</td>
+                <td className="max-w-[200px] truncate px-3 py-2 text-sm">
+                  {p.title}
+                </td>
+                <td className="px-3 py-2 font-medium text-emerald-600">
+                  +{p.potentialGain}
+                </td>
+                <td className="px-3 py-2 tabular-nums">{p.confidence}%</td>
+                <td className="px-3 py-2 text-xs text-slate-dim">{p.source}</td>
+              </tr>
+            ))}
+          </DataTable>
+        </Panel>
+      )}
+
+      <Panel
+        title="SEO Autopilot"
+        subtitle={`Score santé moyen ${autopilot.summary.avgHealthScore}/100 — ${autopilot.summary.pagesNeedingAction} pages à traiter`}
+        accent="green"
+      >
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="Quick wins" value={autopilot.quickWinQueue.length} tone="good" />
+          <StatCard label="Action queue" value={autopilot.actionQueue.length} />
+          <StatCard
+            label="Gain estimé"
+            value={`+${autopilot.summary.totalEstimatedGain}`}
+            tone="good"
+          />
+          <StatCard label="Link autopilot" value={autopilot.linkAutopilot.length} />
+        </div>
+
+        <h3 className="mb-2 text-sm font-semibold">Quick Win Queue (pos 4–15)</h3>
+        <DataTable
+          headers={["Page", "Pos.", "CTR", "Benchmark", "Gain", "Action", ""]}
+        >
+          {autopilot.quickWinQueue.slice(0, 8).map((qw) => (
+            <tr key={qw.pagePath} className="hover:bg-navy/[0.02]">
+              <td className="max-w-[140px] truncate px-3 py-2 text-xs">{qw.pagePath}</td>
+              <td className="px-3 py-2 tabular-nums">{qw.position.toFixed(1)}</td>
+              <td className="px-3 py-2 tabular-nums">{(qw.ctr * 100).toFixed(1)}%</td>
+              <td className="px-3 py-2 tabular-nums text-slate-dim">
+                {(qw.benchmarkCtr * 100).toFixed(1)}%
+              </td>
+              <td className="px-3 py-2 font-medium text-emerald-600">
+                +{qw.estimatedTrafficGain}
+              </td>
+              <td className="px-3 py-2 text-xs">{qw.actionLabel}</td>
+              <td className="px-3 py-2">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => runAutopilot(qw.suggestedAction, qw.pagePath)}
+                  className="rounded bg-navy px-2 py-1 text-xs text-white disabled:opacity-50"
+                >
+                  Run
+                </button>
+              </td>
+            </tr>
+          ))}
+        </DataTable>
+
+        <h3 className="mb-2 mt-4 text-sm font-semibold">SEO Health Scores</h3>
+        <DataTable
+          headers={["Page", "Score", "Issues", "Gain est."]}
+        >
+          {autopilot.healthScores.slice(0, 10).map((h) => (
+            <tr key={h.pagePath} className="hover:bg-navy/[0.02]">
+              <td className="max-w-[140px] truncate px-3 py-2 text-xs">{h.label}</td>
+              <td className="px-3 py-2">
+                <span
+                  className={`font-semibold tabular-nums ${
+                    h.score >= 70 ? "text-emerald-600" : h.score >= 50 ? "text-amber-600" : "text-red-600"
+                  }`}
+                >
+                  {h.score}
+                </span>
+              </td>
+              <td className="max-w-[200px] truncate px-3 py-2 text-xs text-slate-dim">
+                {h.issues.slice(0, 2).join(" · ") || "—"}
+              </td>
+              <td className="px-3 py-2 tabular-nums text-emerald-600">+{h.estimatedTrafficGain}</td>
+            </tr>
+          ))}
+        </DataTable>
+
+        <h3 className="mb-2 mt-4 text-sm font-semibold">Action Queue — exécutable</h3>
+        <div className="mb-4 space-y-2">
+          {autopilot.actionQueue.slice(0, 8).map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-navy/8 bg-[#FAFBFC] px-3 py-2"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-navy">{item.label}</p>
+                <p className="text-xs text-slate-dim">
+                  {item.action} · +{item.estimatedTrafficGain} · {item.confidence}%
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => runAutopilot(item.action, item.targetPath)}
+                className="shrink-0 rounded-lg bg-navy px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+              >
+                Run
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <h3 className="mb-2 text-sm font-semibold">Internal Link Autopilot</h3>
+        {autopilot.linkAutopilot.slice(0, 3).map((link) => (
+          <div key={link.sourcePath} className="mb-3 rounded-lg border border-navy/8 p-3">
+            <p className="text-sm font-semibold">
+              {link.sourceLabel}{" "}
+              <span className="font-normal text-slate-dim">{link.sourcePath}</span>
+            </p>
+            <ul className="mt-2 space-y-1 text-xs text-slate-dim">
+              {link.recommendedLinks.slice(0, 5).map((r) => (
+                <li key={r.href}>
+                  → <span className="text-navy">{r.label}</span> ({r.reason})
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </Panel>
+
+      <Panel
+        title="Market Intelligence"
+        subtitle="Tendances réelles depuis PostgreSQL — 7j / 30j / 90j"
+        accent="yellow"
+      >
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <StatCard
+            label="Villes en croissance"
+            value={demand.market.fastestGrowingCities.filter((c) => c.delta > 0).length}
+            tone="good"
+          />
+          <StatCard
+            label="Skills momentum +"
+            value={demand.skillTrends.fastestGrowing.length}
+          />
+          <StatCard
+            label="Top pay (obs.)"
+            value={demand.market.highestPayingProfessions.length}
+          />
+        </div>
+        <DataTable headers={["Ville", "Offres actives", "Δ 30j"]}>
+          {demand.market.fastestGrowingCities.slice(0, 8).map((c) => (
+            <tr key={c.slug} className="hover:bg-navy/[0.02]">
+              <td className="px-3 py-2 font-medium">{c.city}</td>
+              <td className="px-3 py-2 tabular-nums">{c.count}</td>
+              <td className={`px-3 py-2 tabular-nums ${c.delta > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {c.delta > 0 ? "+" : ""}{c.delta}
+              </td>
+            </tr>
+          ))}
+        </DataTable>
+        <h3 className="mb-2 mt-4 text-sm font-semibold">Fastest Growing Skills</h3>
+        <DataTable headers={["Skill", "Fréquence", "Momentum"]}>
+          {demand.skillTrends.fastestGrowing.slice(0, 8).map((s) => (
+            <tr key={s.slug} className="hover:bg-navy/[0.02]">
+              <td className="px-3 py-2">{s.skill}</td>
+              <td className="px-3 py-2 tabular-nums">{s.frequency}</td>
+              <td className="px-3 py-2 tabular-nums text-emerald-600">+{s.momentumScore}</td>
+            </tr>
+          ))}
+        </DataTable>
+      </Panel>
+
       <Panel
         title="Opportunity Board"
         subtitle={`${opportunities.summary.total} opportunités — gain estimé ${opportunities.summary.totalEstimatedGain} clics/mois`}

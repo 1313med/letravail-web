@@ -11,7 +11,9 @@
     "db:generate": "prisma generate",
     "db:pull": "prisma db pull",
     "db:backfill-published": "node scripts/backfill-published-at.mjs",
-    "db:check-jobs": "node scripts/check-jobs.mjs"
+    "db:check-jobs": "node scripts/check-jobs.mjs",
+    "db:seed-professions": "npx tsx scripts/seed-professions.ts",
+    "seo:google-jobs-audit": "npx tsx scripts/google-jobs-audit.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
