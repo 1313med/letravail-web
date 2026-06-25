@@ -1,35 +1,26 @@
 import { estimateMoroccanSalary } from "./moroccan-salary-estimate";
+import {
+  extractSalaryFromJobText,
+  parseMoroccanSalaryText,
+  type ParsedMoroccanSalary,
+} from "./moroccan-salary-parser";
 
 export type JobSalarySource = "scraped" | "estimated" | "none";
 
-const FOREIGN_CURRENCY = /(?:€|eur\b|euros?|usd\b|us\$|\$|dollar|£|gbp|pound)/i;
-
-export function isMoroccanSalaryText(salary: string): boolean {
-  return !FOREIGN_CURRENCY.test(salary);
-}
-
-function parseMadNumbers(salary: string): { min: number; max: number } | null {
-  const numbers =
-    salary
-      .match(/\d[\d\s]*/g)
-      ?.map((n) => parseInt(n.replace(/\s/g, ""), 10))
-      .filter((n) => n > 1000) ?? [];
-
-  if (numbers.length >= 2) {
-    return { min: Math.min(...numbers), max: Math.max(...numbers) };
-  }
-  if (numbers.length === 1) {
-    return { min: numbers[0], max: numbers[0] };
-  }
-  return null;
-}
+export { isMoroccanSalaryText } from "./moroccan-salary-parser";
+export { parseMoroccanSalaryText, extractSalaryFromJobText, formatSalaryRange } from "./moroccan-salary-parser";
 
 export function parseScrapedMadSalary(
   salary: string | null,
-  _title = ""
+  title = "",
+  description?: string | null,
+  requirements?: string | null
 ): { min: number; max: number } | null {
-  if (!salary || !isMoroccanSalaryText(salary)) return null;
-  return parseMadNumbers(salary);
+  const parsed =
+    extractSalaryFromJobText({ salary, description, requirements }) ??
+  (salary ? parseMoroccanSalaryText(salary) : null);
+  if (!parsed) return null;
+  return { min: parsed.min, max: parsed.max };
 }
 
 export function buildSalaryMonetaryAmount(min: number, max: number): object {
@@ -53,13 +44,20 @@ export interface JobSalaryInput {
   tags?: { slug: string }[];
   companySlug?: string | null;
   description?: string;
+  requirements?: string | null;
 }
 
 export function resolveJobPostingSalary(job: JobSalaryInput): {
   source: JobSalarySource;
   amount: object | null;
 } {
-  const scraped = parseScrapedMadSalary(job.salary, job.title);
+  const scraped = parseScrapedMadSalary(
+    job.salary,
+    job.title,
+    job.description,
+    job.requirements
+  );
+
   if (scraped) {
     return {
       source: "scraped",

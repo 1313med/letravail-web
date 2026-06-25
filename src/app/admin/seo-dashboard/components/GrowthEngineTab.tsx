@@ -7,83 +7,111 @@ import {
   type GrowthActionName,
 } from "../growth-actions";
 import type { AutopilotActionType, GrowthEngineBundle } from "@/lib/seo-engine/types";
-import { Badge, DataTable, Panel, StatCard } from "./ui";
+import {
+  ACTION_LABELS,
+  GLOSSARY,
+  PRIORITY_LABELS,
+  SOURCE_LABELS,
+} from "./dashboard-guide";
+import {
+  ActionButton,
+  Badge,
+  DataTable,
+  EmptyState,
+  Panel,
+  PriorityHero,
+  ResultToast,
+  StatCard,
+  SubSection,
+} from "./ui";
 
 const GROWTH_ACTIONS: {
   id: GrowthActionName;
   label: string;
   description: string;
+  when: string;
 }[] = [
   {
     id: "generate-cities",
-    label: "Generate city pages",
-    description: "Revalide les villes ≥5 offres (indexables uniquement)",
+    label: "Activer les pages villes",
+    description: "Publie les pages ville qui ont assez d'offres (≥5).",
+    when: "Quand de nouvelles villes ont des offres mais pas de page SEO.",
   },
   {
     id: "generate-professions",
-    label: "Generate profession pages",
-    description: "Active les landings secteur/métier ≥3 offres",
+    label: "Activer les pages métiers",
+    description: "Publie les landings secteur/métier avec ≥3 offres.",
+    when: "Pour couvrir des recherches type « emploi développeur ».",
   },
   {
     id: "generate-salaries",
-    label: "Generate salary pages",
-    description: "Sync observations + revalide pages ≥5 obs.",
+    label: "Mettre à jour les salaires",
+    description: "Recalcule les observations salariales depuis les offres.",
+    when: "Après import d'offres avec salaires — améliore les pages salaire.",
   },
   {
     id: "fix-links",
-    label: "Fix internal links",
-    description: "Enrichit le maillage offre → ville/entreprise/salaire",
+    label: "Améliorer les liens internes",
+    description: "Relie offres → villes, entreprises, pages salaire.",
+    when: "Quand des pages sont isolées ou peu liées entre elles.",
   },
   {
     id: "rebuild-sitemap",
-    label: "Rebuild sitemap",
-    description: "Régénère sitemap.xml",
+    label: "Regénérer le sitemap",
+    description: "Met à jour sitemap.xml pour Google.",
+    when: "Après avoir créé ou activé de nouvelles pages.",
   },
   {
     id: "enrich-schema",
-    label: "Enrich schema",
-    description: "Revalide JobPosting avec salaires résolus",
+    label: "Enrichir les données Google Jobs",
+    description: "Améliore le schema JobPosting des offres actives.",
+    when: "Pour mieux apparaître dans Google for Jobs.",
   },
   {
     id: "fix-thin",
-    label: "Fix thin pages",
-    description: "Force noindex sur pages sous seuil",
+    label: "Masquer les pages trop pauvres",
+    description: "Applique noindex aux pages sous le seuil minimum.",
+    when: "Pour éviter que Google indexe du contenu faible.",
   },
   {
     id: "sync-gsc",
-    label: "Sync Search Console",
-    description: "Importe impressions/clics/CTR depuis GSC API",
+    label: "Synchroniser Search Console",
+    description: "Importe clics, impressions et positions depuis Google.",
+    when: "À faire en premier si les données Google sont vides.",
   },
   {
     id: "full-pipeline",
-    label: "Run full pipeline",
-    description: "Exécute toutes les actions growth en séquence",
+    label: "Tout lancer d'un coup",
+    description: "Exécute toutes les actions ci-dessus en séquence.",
+    when: "Maintenance hebdomadaire ou après gros import d'offres.",
   },
 ];
 
 const TYPE_LABELS: Record<string, string> = {
-  CITY_PAGE: "Ville",
-  SALARY_PAGE: "Salaire",
-  PROFESSION_PAGE: "Métier",
+  CITY_PAGE: "Page ville",
+  SALARY_PAGE: "Page salaire",
+  PROFESSION_PAGE: "Page métier",
   LINKING: "Maillage",
-  RANKING: "Ranking",
+  RANKING: "Position Google",
 };
 
 export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
   const [pending, startTransition] = useTransition();
-  const [lastResult, setLastResult] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<{ message: string; ok: boolean } | null>(
+    null
+  );
 
   function runAction(id: GrowthActionName) {
     startTransition(async () => {
       const result = await executeGrowthAction(id);
-      setLastResult(result.message);
+      setLastResult({ message: result.message, ok: result.ok });
     });
   }
 
   function runAutopilot(action: AutopilotActionType, targetPath: string) {
     startTransition(async () => {
       const result = await executeAutopilotActionById(action, targetPath);
-      setLastResult(result.message);
+      setLastResult({ message: result.message, ok: result.ok });
     });
   }
 
@@ -100,259 +128,366 @@ export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
 
   return (
     <div className="grid gap-6">
-      {orchestrator.topAction && (
+      {orchestrator.topAction ? (
         <Panel
-          title="Growth Orchestrator — #1 ROI Action"
-          subtitle={`Potentiel total : +${orchestrator.totalPotentialGain} clics estimés`}
+          title="Votre priorité #1 — action à plus fort impact"
+          subtitle={`Si vous ne faites qu'une chose aujourd'hui, faites celle-ci. Potentiel total du top 15 : +${orchestrator.totalPotentialGain} clics/mois`}
           accent="purple"
+          help={GLOSSARY.orchestrator}
+          whatToDo={[
+            "Lisez l'action recommandée ci-dessous.",
+            "Cliquez « Exécuter cette action » — le système applique la correction automatiquement.",
+            "Revenez demain : une nouvelle priorité sera calculée avec les données à jour.",
+          ]}
         >
-          <div className="rounded-xl border-2 border-mint/30 bg-gradient-to-r from-navy/5 to-mint/5 p-5">
-            <p className="text-lg font-bold text-navy">
-              {orchestrator.topAction.rank}. {orchestrator.topAction.title}
-            </p>
-            <p className="mt-1 text-sm text-slate-dim">
-              {orchestrator.topAction.targetPath} — {orchestrator.topAction.rationale}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-3 text-sm">
-              <span className="font-semibold text-emerald-600">
-                +{orchestrator.topAction.potentialGain} clics
-              </span>
-              <span>Confiance {orchestrator.topAction.confidence}%</span>
-              <Badge>{orchestrator.topAction.action}</Badge>
-            </div>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() =>
-                runAutopilot(
-                  orchestrator.topAction!.action,
-                  orchestrator.topAction!.targetPath
-                )
-              }
-              className="mt-4 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-700 disabled:opacity-50"
-            >
-              Exécuter maintenant
-            </button>
-          </div>
-          <DataTable
-            headers={["#", "Action", "Gain", "Conf.", "Source"]}
+          <PriorityHero
+            rank={orchestrator.topAction.rank}
+            title={orchestrator.topAction.title}
+            path={orchestrator.topAction.targetPath}
+            rationale={orchestrator.topAction.rationale}
+            gain={orchestrator.topAction.potentialGain}
+            confidence={orchestrator.topAction.confidence}
+            actionLabel={
+              ACTION_LABELS[orchestrator.topAction.action] ??
+              orchestrator.topAction.action
+            }
+            onExecute={() =>
+              runAutopilot(
+                orchestrator.topAction!.action,
+                orchestrator.topAction!.targetPath
+              )
+            }
+            disabled={pending}
+          />
+
+          <SubSection
+            title="Autres actions classées par impact"
+            hint="Traitez-les dans l'ordre après la priorité #1."
           >
-            {orchestrator.priorities.slice(1, 8).map((p) => (
-              <tr key={p.actionId} className="hover:bg-navy/[0.02]">
-                <td className="px-3 py-2 tabular-nums">{p.rank}</td>
-                <td className="max-w-[200px] truncate px-3 py-2 text-sm">
-                  {p.title}
-                </td>
-                <td className="px-3 py-2 font-medium text-emerald-600">
-                  +{p.potentialGain}
-                </td>
-                <td className="px-3 py-2 tabular-nums">{p.confidence}%</td>
-                <td className="px-3 py-2 text-xs text-slate-dim">{p.source}</td>
-              </tr>
-            ))}
-          </DataTable>
+            <DataTable headers={["Rang", "Action", "Gain estimé", "Confiance", "Origine"]}>
+              {orchestrator.priorities.slice(1, 8).map((p) => (
+                <tr key={p.actionId} className="hover:bg-navy/[0.02]">
+                  <td className="px-3 py-2 tabular-nums font-medium">{p.rank}</td>
+                  <td className="max-w-[220px] px-3 py-2 text-sm">
+                    <span className="line-clamp-2">{p.title}</span>
+                  </td>
+                  <td className="px-3 py-2 font-semibold text-emerald-600">
+                    +{p.potentialGain}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">{p.confidence}%</td>
+                  <td className="px-3 py-2 text-xs text-slate-dim">
+                    {SOURCE_LABELS[p.source] ?? p.source}
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          </SubSection>
+        </Panel>
+      ) : (
+        <Panel
+          title="Orchestrateur de croissance"
+          accent="purple"
+          help="Le système a besoin de données (offres + idéalement Google Search Console) pour calculer votre priorité #1."
+        >
+          <EmptyState
+            title="Aucune action prioritaire pour l'instant"
+            description="Synchronisez Google Search Console et assurez-vous d'avoir des pages indexées avec des offres actives."
+            action={
+              <ActionButton onClick={() => runAction("sync-gsc")} disabled={pending}>
+                Synchroniser Search Console
+              </ActionButton>
+            }
+          />
         </Panel>
       )}
 
+      {lastResult && (
+        <ResultToast message={lastResult.message} ok={lastResult.ok} />
+      )}
+
       <Panel
-        title="SEO Autopilot"
-        subtitle={`Score santé moyen ${autopilot.summary.avgHealthScore}/100 — ${autopilot.summary.pagesNeedingAction} pages à traiter`}
+        title="Pilote SEO automatique"
+        subtitle={`Note santé moyenne : ${autopilot.summary.avgHealthScore}/100 — ${autopilot.summary.pagesNeedingAction} page(s) à améliorer`}
         accent="green"
+        help={GLOSSARY.healthScore}
+        whatToDo={[
+          "Consultez les « Gains rapides » : pages déjà sur Google mais sous-optimisées.",
+          "Cliquez « Appliquer » sur une ligne pour exécuter la correction suggérée.",
+          "Utilisez le maillage automatique pour relier villes, métiers et entreprises.",
+        ]}
       >
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Quick wins" value={autopilot.quickWinQueue.length} tone="good" />
-          <StatCard label="Action queue" value={autopilot.actionQueue.length} />
           <StatCard
-            label="Gain estimé"
-            value={`+${autopilot.summary.totalEstimatedGain}`}
+            label="Gains rapides"
+            value={autopilot.quickWinQueue.length}
+            hint="Pages proches du top Google"
             tone="good"
+            tooltip={GLOSSARY.quickWin}
           />
-          <StatCard label="Link autopilot" value={autopilot.linkAutopilot.length} />
+          <StatCard
+            label="Actions en attente"
+            value={autopilot.actionQueue.length}
+            hint="Prêtes à exécuter"
+          />
+          <StatCard
+            label="Clics à gagner"
+            value={`+${autopilot.summary.totalEstimatedGain}`}
+            hint="Estimation mensuelle"
+            tone="good"
+            tooltip={GLOSSARY.trafficGain}
+          />
+          <StatCard
+            label="Suggestions de liens"
+            value={autopilot.linkAutopilot.length}
+            hint="Pages à mieux relier"
+            tooltip={GLOSSARY.internalLinks}
+          />
         </div>
 
-        <h3 className="mb-2 text-sm font-semibold">Quick Win Queue (pos 4–15)</h3>
-        <DataTable
-          headers={["Page", "Pos.", "CTR", "Benchmark", "Gain", "Action", ""]}
+        <SubSection
+          title="Gains rapides"
+          hint={`Pages en position 4–15 avec beaucoup d'impressions mais un CTR en dessous de la norme. ${GLOSSARY.ctr}`}
         >
-          {autopilot.quickWinQueue.slice(0, 8).map((qw) => (
-            <tr key={qw.pagePath} className="hover:bg-navy/[0.02]">
-              <td className="max-w-[140px] truncate px-3 py-2 text-xs">{qw.pagePath}</td>
-              <td className="px-3 py-2 tabular-nums">{qw.position.toFixed(1)}</td>
-              <td className="px-3 py-2 tabular-nums">{(qw.ctr * 100).toFixed(1)}%</td>
-              <td className="px-3 py-2 tabular-nums text-slate-dim">
-                {(qw.benchmarkCtr * 100).toFixed(1)}%
-              </td>
-              <td className="px-3 py-2 font-medium text-emerald-600">
-                +{qw.estimatedTrafficGain}
-              </td>
-              <td className="px-3 py-2 text-xs">{qw.actionLabel}</td>
-              <td className="px-3 py-2">
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => runAutopilot(qw.suggestedAction, qw.pagePath)}
-                  className="rounded bg-navy px-2 py-1 text-xs text-white disabled:opacity-50"
-                >
-                  Run
-                </button>
-              </td>
-            </tr>
-          ))}
-        </DataTable>
-
-        <h3 className="mb-2 mt-4 text-sm font-semibold">SEO Health Scores</h3>
-        <DataTable
-          headers={["Page", "Score", "Issues", "Gain est."]}
-        >
-          {autopilot.healthScores.slice(0, 10).map((h) => (
-            <tr key={h.pagePath} className="hover:bg-navy/[0.02]">
-              <td className="max-w-[140px] truncate px-3 py-2 text-xs">{h.label}</td>
-              <td className="px-3 py-2">
-                <span
-                  className={`font-semibold tabular-nums ${
-                    h.score >= 70 ? "text-emerald-600" : h.score >= 50 ? "text-amber-600" : "text-red-600"
-                  }`}
-                >
-                  {h.score}
-                </span>
-              </td>
-              <td className="max-w-[200px] truncate px-3 py-2 text-xs text-slate-dim">
-                {h.issues.slice(0, 2).join(" · ") || "—"}
-              </td>
-              <td className="px-3 py-2 tabular-nums text-emerald-600">+{h.estimatedTrafficGain}</td>
-            </tr>
-          ))}
-        </DataTable>
-
-        <h3 className="mb-2 mt-4 text-sm font-semibold">Action Queue — exécutable</h3>
-        <div className="mb-4 space-y-2">
-          {autopilot.actionQueue.slice(0, 8).map((item) => (
-            <div
-              key={item.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-navy/8 bg-[#FAFBFC] px-3 py-2"
+          {autopilot.quickWinQueue.length === 0 ? (
+            <EmptyState
+              title="Aucun gain rapide détecté"
+              description="Connectez Google Search Console pour analyser positions et CTR."
+            />
+          ) : (
+            <DataTable
+              headers={[
+                "Page",
+                "Position",
+                "Votre CTR",
+                "CTR attendu",
+                "Clics à gagner",
+                "Action suggérée",
+                "",
+              ]}
             >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-navy">{item.label}</p>
-                <p className="text-xs text-slate-dim">
-                  {item.action} · +{item.estimatedTrafficGain} · {item.confidence}%
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => runAutopilot(item.action, item.targetPath)}
-                className="shrink-0 rounded-lg bg-navy px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+              {autopilot.quickWinQueue.slice(0, 8).map((qw) => (
+                <tr key={qw.pagePath} className="hover:bg-navy/[0.02]">
+                  <td className="max-w-[140px] truncate px-3 py-2 text-xs font-medium">
+                    {qw.pagePath}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums" title={GLOSSARY.position}>
+                    {qw.position.toFixed(1)}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums text-red-600">
+                    {(qw.ctr * 100).toFixed(1)}%
+                  </td>
+                  <td className="px-3 py-2 tabular-nums text-emerald-600">
+                    {(qw.benchmarkCtr * 100).toFixed(1)}%
+                  </td>
+                  <td className="px-3 py-2 font-semibold text-emerald-600">
+                    +{qw.estimatedTrafficGain}
+                  </td>
+                  <td className="px-3 py-2 text-xs">{qw.actionLabel}</td>
+                  <td className="px-3 py-2">
+                    <ActionButton
+                      size="sm"
+                      onClick={() => runAutopilot(qw.suggestedAction, qw.pagePath)}
+                      disabled={pending}
+                    >
+                      Appliquer
+                    </ActionButton>
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          )}
+        </SubSection>
+
+        <SubSection
+          title="Santé SEO par page"
+          hint="Score global 0–100. En dessous de 50 = action recommandée. En dessous de 70 = à surveiller."
+        >
+          <DataTable headers={["Page", "Score", "Problèmes détectés", "Clics à gagner"]}>
+            {autopilot.healthScores.slice(0, 10).map((h) => (
+              <tr key={h.pagePath} className="hover:bg-navy/[0.02]">
+                <td className="max-w-[140px] truncate px-3 py-2 text-xs">{h.label}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`font-bold tabular-nums ${
+                      h.score >= 70
+                        ? "text-emerald-600"
+                        : h.score >= 50
+                          ? "text-amber-600"
+                          : "text-red-600"
+                    }`}
+                  >
+                    {h.score}/100
+                  </span>
+                </td>
+                <td className="max-w-[220px] truncate px-3 py-2 text-xs text-slate-dim">
+                  {h.issues.slice(0, 2).join(" · ") || "RAS"}
+                </td>
+                <td className="px-3 py-2 tabular-nums text-emerald-600">
+                  +{h.estimatedTrafficGain}
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </SubSection>
+
+        <SubSection
+          title="File d'actions — cliquez pour exécuter"
+          hint="Chaque ligne est une correction concrète que le système peut appliquer seul."
+        >
+          <div className="space-y-2">
+            {autopilot.actionQueue.slice(0, 8).map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-navy/8 bg-[#FAFBFC] px-4 py-3"
               >
-                Run
-              </button>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-navy">{item.label}</p>
+                  <p className="mt-1 text-xs text-slate-dim">
+                    <Badge>{ACTION_LABELS[item.action] ?? item.action}</Badge>
+                    <span className="ml-2">
+                      +{item.estimatedTrafficGain} clics · confiance {item.confidence}%
+                    </span>
+                  </p>
+                </div>
+                <ActionButton
+                  size="sm"
+                  variant="success"
+                  onClick={() => runAutopilot(item.action, item.targetPath)}
+                  disabled={pending}
+                >
+                  Exécuter
+                </ActionButton>
+              </div>
+            ))}
+          </div>
+        </SubSection>
+
+        <SubSection
+          title="Maillage interne automatique"
+          hint="Le système détecte quelles pages devraient se lier entre elles (ville → métier → entreprise) sans configuration manuelle."
+        >
+          {autopilot.linkAutopilot.slice(0, 3).map((link) => (
+            <div
+              key={link.sourcePath}
+              className="mb-3 rounded-xl border border-navy/8 bg-white p-4"
+            >
+              <p className="text-sm font-semibold text-navy">{link.sourceLabel}</p>
+              <p className="font-mono text-xs text-slate-dim">{link.sourcePath}</p>
+              <p className="mt-2 text-xs text-slate-dim">
+                Liens recommandés (+{link.estimatedTrafficGain} clics estimés) :
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {link.recommendedLinks.slice(0, 5).map((r) => (
+                  <li key={r.href} className="flex gap-2 text-sm">
+                    <span className="text-mint-dim">→</span>
+                    <span>
+                      <span className="font-medium text-navy">{r.label}</span>
+                      <span className="text-xs text-slate-dim"> — {r.reason}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
-        </div>
-
-        <h3 className="mb-2 text-sm font-semibold">Internal Link Autopilot</h3>
-        {autopilot.linkAutopilot.slice(0, 3).map((link) => (
-          <div key={link.sourcePath} className="mb-3 rounded-lg border border-navy/8 p-3">
-            <p className="text-sm font-semibold">
-              {link.sourceLabel}{" "}
-              <span className="font-normal text-slate-dim">{link.sourcePath}</span>
-            </p>
-            <ul className="mt-2 space-y-1 text-xs text-slate-dim">
-              {link.recommendedLinks.slice(0, 5).map((r) => (
-                <li key={r.href}>
-                  → <span className="text-navy">{r.label}</span> ({r.reason})
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        </SubSection>
       </Panel>
 
       <Panel
-        title="Market Intelligence"
-        subtitle="Tendances réelles depuis PostgreSQL — 7j / 30j / 90j"
+        title="Intelligence marché emploi"
+        subtitle="Tendances calculées depuis vos vraies offres d'emploi — pas d'estimations fictives"
         accent="yellow"
+        help="Utilisez ces données pour décider quelles pages créer ou enrichir : villes en croissance, compétences demandées, salaires."
+        whatToDo={[
+          "Repérez les villes où le recrutement accélère → priorisez leurs pages SEO.",
+          "Notez les compétences en forte hausse → créez du contenu ciblé.",
+          "Croisez avec l'onglet Intelligence pour les mots-clés associés.",
+        ]}
       >
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <StatCard
             label="Villes en croissance"
             value={demand.market.fastestGrowingCities.filter((c) => c.delta > 0).length}
+            hint="Plus d'offres qu'il y a 30j"
             tone="good"
           />
           <StatCard
-            label="Skills momentum +"
+            label="Compétences montantes"
             value={demand.skillTrends.fastestGrowing.length}
+            hint="Momentum positif"
           />
           <StatCard
-            label="Top pay (obs.)"
+            label="Métiers bien payés"
             value={demand.market.highestPayingProfessions.length}
+            hint="D'après les offres"
           />
         </div>
-        <DataTable headers={["Ville", "Offres actives", "Δ 30j"]}>
-          {demand.market.fastestGrowingCities.slice(0, 8).map((c) => (
-            <tr key={c.slug} className="hover:bg-navy/[0.02]">
-              <td className="px-3 py-2 font-medium">{c.city}</td>
-              <td className="px-3 py-2 tabular-nums">{c.count}</td>
-              <td className={`px-3 py-2 tabular-nums ${c.delta > 0 ? "text-emerald-600" : "text-red-600"}`}>
-                {c.delta > 0 ? "+" : ""}{c.delta}
-              </td>
-            </tr>
-          ))}
-        </DataTable>
-        <h3 className="mb-2 mt-4 text-sm font-semibold">Fastest Growing Skills</h3>
-        <DataTable headers={["Skill", "Fréquence", "Momentum"]}>
-          {demand.skillTrends.fastestGrowing.slice(0, 8).map((s) => (
-            <tr key={s.slug} className="hover:bg-navy/[0.02]">
-              <td className="px-3 py-2">{s.skill}</td>
-              <td className="px-3 py-2 tabular-nums">{s.frequency}</td>
-              <td className="px-3 py-2 tabular-nums text-emerald-600">+{s.momentumScore}</td>
-            </tr>
-          ))}
-        </DataTable>
+
+        <SubSection title="Villes où le recrutement accélère" hint="Δ 30j = différence d'offres actives sur 30 jours.">
+          <DataTable headers={["Ville", "Offres actives", "Évolution 30j"]}>
+            {demand.market.fastestGrowingCities.slice(0, 8).map((c) => (
+              <tr key={c.slug} className="hover:bg-navy/[0.02]">
+                <td className="px-3 py-2 font-medium">{c.city}</td>
+                <td className="px-3 py-2 tabular-nums">{c.count}</td>
+                <td
+                  className={`px-3 py-2 tabular-nums font-medium ${
+                    c.delta > 0 ? "text-emerald-600" : "text-red-600"
+                  }`}
+                >
+                  {c.delta > 0 ? "+" : ""}
+                  {c.delta} offres
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </SubSection>
+
+        <SubSection title="Compétences les plus demandées (en hausse)">
+          <DataTable headers={["Compétence", "Fréquence dans les offres", "Score momentum"]}>
+            {demand.skillTrends.fastestGrowing.slice(0, 8).map((s) => (
+              <tr key={s.slug} className="hover:bg-navy/[0.02]">
+                <td className="px-3 py-2 font-medium">{s.skill}</td>
+                <td className="px-3 py-2 tabular-nums">{s.frequency}</td>
+                <td className="px-3 py-2 tabular-nums text-emerald-600">+{s.momentumScore}</td>
+              </tr>
+            ))}
+          </DataTable>
+        </SubSection>
       </Panel>
 
       <Panel
-        title="Opportunity Board"
-        subtitle={`${opportunities.summary.total} opportunités — gain estimé ${opportunities.summary.totalEstimatedGain} clics/mois`}
+        title="Opportunités SEO détectées"
+        subtitle={`${opportunities.summary.total} opportunité(s) — jusqu'à +${opportunities.summary.totalEstimatedGain} clics/mois si tout est corrigé`}
         accent="red"
+        help="Le moteur scanne vos pages et signale ce qui manque : contenu, liens, indexation, etc."
+        whatToDo={[
+          "Commencez par les badges « Urgent » (rouge).",
+          "Lisez la colonne « Que faire » — c'est l'action manuelle ou automatique à lancer.",
+          "Pour automatiser, utilisez la file d'actions du Pilote SEO ci-dessus.",
+        ]}
       >
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="HIGH" value={opportunities.summary.high} tone="bad" />
-          <StatCard label="MEDIUM" value={opportunities.summary.medium} tone="warn" />
-          <StatCard label="LOW" value={opportunities.summary.low} />
           <StatCard
-            label="Quick wins"
+            label="Urgent"
+            value={opportunities.summary.high}
+            hint={PRIORITY_LABELS.HIGH.hint}
+            tone="bad"
+          />
+          <StatCard
+            label="Important"
+            value={opportunities.summary.medium}
+            hint={PRIORITY_LABELS.MEDIUM.hint}
+            tone="warn"
+          />
+          <StatCard label="Plus tard" value={opportunities.summary.low} hint={PRIORITY_LABELS.LOW.hint} />
+          <StatCard
+            label="Gains rapides"
             value={opportunities.quickWins.length}
             tone="good"
           />
         </div>
 
-        <h3 className="mb-2 text-sm font-semibold text-navy">Quick wins</h3>
-        <div className="mb-5 space-y-2">
-          {opportunities.quickWins.map((opp, i) => (
-            <div
-              key={`qw-${i}`}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-navy/8 bg-[#FAFBFC] px-3 py-2 text-sm"
-            >
-              <div>
-                <Badge tone={opp.priority === "HIGH" ? "bad" : "warn"}>
-                  {TYPE_LABELS[opp.type] ?? opp.type}
-                </Badge>
-                <span className="ml-2 text-navy">{opp.reason}</span>
-              </div>
-              <span className="text-xs font-medium text-emerald-600">
-                +{opp.estimatedTrafficGain} est.
-              </span>
-            </div>
-          ))}
-          {opportunities.quickWins.length === 0 && (
-            <p className="text-sm text-slate-dim">Aucun quick win détecté.</p>
-          )}
-        </div>
-
-        <DataTable
-          headers={["Type", "Priorité", "Raison", "Gain est.", "Action"]}
-        >
-          {opportunities.opportunities.slice(0, 25).map((opp, i) => (
+        <DataTable headers={["Type", "Urgence", "Problème", "Clics à gagner", "Que faire"]}>
+          {opportunities.opportunities.slice(0, 20).map((opp, i) => (
             <tr key={`opp-${i}`} className="hover:bg-navy/[0.02]">
               <td className="px-3 py-2">
                 <Badge>{TYPE_LABELS[opp.type] ?? opp.type}</Badge>
@@ -367,16 +502,14 @@ export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
                         : "neutral"
                   }
                 >
-                  {opp.priority}
+                  {PRIORITY_LABELS[opp.priority]?.label ?? opp.priority}
                 </Badge>
               </td>
-              <td className="max-w-xs truncate px-3 py-2 text-xs">
-                {opp.reason}
-              </td>
-              <td className="px-3 py-2 tabular-nums text-emerald-600">
+              <td className="max-w-xs px-3 py-2 text-xs">{opp.reason}</td>
+              <td className="px-3 py-2 font-semibold text-emerald-600">
                 +{opp.estimatedTrafficGain}
               </td>
-              <td className="max-w-[200px] truncate px-3 py-2 text-xs text-slate-dim">
+              <td className="max-w-[200px] px-3 py-2 text-xs text-slate-dim">
                 {opp.requiredAction}
               </td>
             </tr>
@@ -385,9 +518,14 @@ export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
       </Panel>
 
       <Panel
-        title="One Click Actions"
-        subtitle="Automatisations SEO — respectent les seuils d'indexation"
+        title="Actions manuelles (maintenance)"
+        subtitle="Lancez une opération précise quand vous savez ce dont le site a besoin"
         accent="purple"
+        whatToDo={[
+          "En début de semaine : « Synchroniser Search Console » puis « Tout lancer ».",
+          "Après import d'offres : « Mettre à jour les salaires » + « Améliorer les liens ».",
+          "Chaque bouton explique quand l'utiliser — survolez la description.",
+        ]}
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {GROWTH_ACTIONS.map((action) => (
@@ -399,40 +537,115 @@ export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
               className="rounded-xl border border-navy/10 bg-[#FAFBFC] px-4 py-3 text-left transition hover:border-mint/40 hover:bg-white disabled:opacity-50"
             >
               <p className="text-sm font-semibold text-navy">{action.label}</p>
-              <p className="mt-1 text-xs text-slate-dim">{action.description}</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-dim">
+                {action.description}
+              </p>
+              <p className="mt-2 text-xs font-medium text-mint-dim">
+                Quand ? {action.when}
+              </p>
             </button>
           ))}
         </div>
-        {lastResult && (
-          <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {lastResult}
-          </p>
-        )}
+
         {recentActionLogs.length > 0 && (
-          <div className="mt-4">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-dim">
-              Derniers logs
-            </h3>
-            <div className="space-y-1">
+          <SubSection title="Historique récent" hint="Les 5 dernières actions exécutées sur le site.">
+            <div className="space-y-2">
               {recentActionLogs.slice(0, 5).map((log, i) => (
-                <p key={i} className="text-xs text-slate-dim">
-                  <span className="font-medium text-navy">{log.action}</span> —{" "}
-                  {log.message.slice(0, 100)}
+                <p key={i} className="rounded-lg bg-navy/[0.03] px-3 py-2 text-xs text-slate-dim">
+                  <span className="font-semibold text-navy">{log.action}</span> —{" "}
+                  {log.message.slice(0, 120)}
                 </p>
               ))}
             </div>
-          </div>
+          </SubSection>
         )}
       </Panel>
 
       <Panel
-        title="Growth Forecast"
-        subtitle="Gain de trafic estimé par action prioritaire"
-        accent="yellow"
+        title="Données Google Search Console"
+        subtitle={
+          gsc.configured
+            ? gsc.lastIngestedAt
+              ? `Dernière synchronisation : ${new Date(gsc.lastIngestedAt).toLocaleString("fr-MA")}`
+              : "Compte connecté — cliquez « Synchroniser Search Console » ci-dessus"
+            : "Non configuré — ajoutez GSC_SERVICE_ACCOUNT_EMAIL et GSC_PRIVATE_KEY dans .env"
+        }
+        accent="blue"
+        help={`${GLOSSARY.impressions} ${GLOSSARY.position}`}
+        whatToDo={[
+          "Si ce bloc est vide : lancez « Synchroniser Search Console ».",
+          "Regardez « Écarts de CTR » : requêtes visibles mais peu cliquées → améliorez titres.",
+          "Pages à fort potentiel = beaucoup d'impressions, position améliorable.",
+        ]}
       >
-        <DataTable
-          headers={["Action", "Priorité", "Gain est.", "Effort"]}
-        >
+        {!gsc.lastIngestedAt ? (
+          <EmptyState
+            title="Pas encore de données Google"
+            description="Sans Search Console, les gains en clics et les positions ne peuvent pas être calculés. C'est la première chose à configurer."
+            action={
+              <ActionButton onClick={() => runAction("sync-gsc")} disabled={pending}>
+                Synchroniser maintenant
+              </ActionButton>
+            }
+          />
+        ) : (
+          <>
+            <SubSection title="Requêtes les plus visibles sur Google">
+              <DataTable
+                headers={[
+                  "Recherche Google",
+                  "Impressions",
+                  "Clics",
+                  "CTR",
+                  "Position moy.",
+                ]}
+              >
+                {gsc.topQueries.map((q) => (
+                  <tr key={q.query} className="hover:bg-navy/[0.02]">
+                    <td className="px-3 py-2 font-medium">{q.query}</td>
+                    <td className="px-3 py-2 tabular-nums">{q.impressions}</td>
+                    <td className="px-3 py-2 tabular-nums">{q.clicks}</td>
+                    <td className="px-3 py-2 tabular-nums">{(q.ctr * 100).toFixed(1)}%</td>
+                    <td className="px-3 py-2 tabular-nums">{q.position.toFixed(1)}</td>
+                  </tr>
+                ))}
+              </DataTable>
+            </SubSection>
+
+            {gsc.ctrGaps.length > 0 && (
+              <SubSection
+                title="Écarts de CTR — vous êtes visible mais peu cliqué"
+                hint="Le CTR actuel est en rouge, le CTR possible en vert si vous améliorez titre et description."
+              >
+                <DataTable
+                  headers={["Requête", "Impressions", "CTR actuel", "CTR possible"]}
+                >
+                  {gsc.ctrGaps.map((g) => (
+                    <tr key={g.query} className="hover:bg-navy/[0.02]">
+                      <td className="px-3 py-2">{g.query}</td>
+                      <td className="px-3 py-2 tabular-nums">{g.impressions}</td>
+                      <td className="px-3 py-2 tabular-nums font-medium text-red-600">
+                        {(g.ctr * 100).toFixed(1)}%
+                      </td>
+                      <td className="px-3 py-2 tabular-nums font-medium text-emerald-600">
+                        {(g.expectedCtr * 100).toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                </DataTable>
+              </SubSection>
+            )}
+          </>
+        )}
+      </Panel>
+
+      <Panel
+        title="Prévisions de croissance"
+        subtitle="Estimation du gain si vous appliquez chaque type d'action"
+        accent="yellow"
+        help="Classement par impact estimé. « Effort » = temps/complexité approximative (low = rapide)."
+      >
+        <DataTable headers={["Action", "Urgence", "Clics à gagner", "Effort"]}>
           {forecast.map((item, i) => (
             <tr key={i} className="hover:bg-navy/[0.02]">
               <td className="px-3 py-2 text-sm">{item.action}</td>
@@ -446,104 +659,36 @@ export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
                         : "neutral"
                   }
                 >
-                  {item.priority}
+                  {PRIORITY_LABELS[item.priority as keyof typeof PRIORITY_LABELS]?.label ??
+                    item.priority}
                 </Badge>
               </td>
-              <td className="px-3 py-2 tabular-nums font-medium text-emerald-600">
+              <td className="px-3 py-2 font-semibold text-emerald-600">
                 +{item.estimatedTrafficGain}
               </td>
-              <td className="px-3 py-2 text-xs capitalize">{item.effort}</td>
+              <td className="px-3 py-2 text-xs capitalize text-slate-dim">
+                {item.effort === "low"
+                  ? "Rapide"
+                  : item.effort === "medium"
+                    ? "Moyen"
+                    : "Long"}
+              </td>
             </tr>
           ))}
         </DataTable>
       </Panel>
 
       <Panel
-        title="Google Insights"
-        subtitle={
-          gsc.configured
-            ? gsc.lastIngestedAt
-              ? `Dernière sync : ${new Date(gsc.lastIngestedAt).toLocaleString("fr-MA")}`
-              : "GSC configuré — lancez Sync Search Console"
-            : "Configurez GSC_SERVICE_ACCOUNT_EMAIL + GSC_PRIVATE_KEY"
-        }
-        accent="blue"
-      >
-        {!gsc.lastIngestedAt ? (
-          <p className="text-sm text-slate-dim">
-            Aucune donnée Search Console. Utilisez le bouton « Sync Search Console »
-            ou POST /api/admin/gsc avec des données manuelles.
-          </p>
-        ) : (
-          <>
-            <h3 className="mb-2 text-sm font-semibold">Top requêtes</h3>
-            <DataTable headers={["Requête", "Impressions", "Clics", "CTR", "Position"]}>
-              {gsc.topQueries.map((q) => (
-                <tr key={q.query} className="hover:bg-navy/[0.02]">
-                  <td className="px-3 py-2 font-medium">{q.query}</td>
-                  <td className="px-3 py-2 tabular-nums">{q.impressions}</td>
-                  <td className="px-3 py-2 tabular-nums">{q.clicks}</td>
-                  <td className="px-3 py-2 tabular-nums">
-                    {(q.ctr * 100).toFixed(1)}%
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">{q.position.toFixed(1)}</td>
-                </tr>
-              ))}
-            </DataTable>
-
-            {gsc.ctrGaps.length > 0 && (
-              <>
-                <h3 className="mb-2 mt-5 text-sm font-semibold">CTR gaps</h3>
-                <DataTable headers={["Requête", "Impressions", "CTR actuel", "CTR attendu"]}>
-                  {gsc.ctrGaps.map((g) => (
-                    <tr key={g.query} className="hover:bg-navy/[0.02]">
-                      <td className="px-3 py-2">{g.query}</td>
-                      <td className="px-3 py-2 tabular-nums">{g.impressions}</td>
-                      <td className="px-3 py-2 tabular-nums text-red-600">
-                        {(g.ctr * 100).toFixed(1)}%
-                      </td>
-                      <td className="px-3 py-2 tabular-nums text-emerald-600">
-                        {(g.expectedCtr * 100).toFixed(1)}%
-                      </td>
-                    </tr>
-                  ))}
-                </DataTable>
-              </>
-            )}
-
-            <h3 className="mb-2 mt-5 text-sm font-semibold">
-              Pages à fort potentiel
-            </h3>
-            <DataTable headers={["Page", "Score", "Impressions", "Position"]}>
-              {gsc.highPotential.slice(0, 10).map((p) => (
-                <tr key={p.pagePath} className="hover:bg-navy/[0.02]">
-                  <td className="max-w-[200px] truncate px-3 py-2 text-xs">
-                    {p.pagePath}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums font-medium">
-                    {p.performanceScore}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">{p.impressions}</td>
-                  <td className="px-3 py-2 tabular-nums">
-                    {p.position.toFixed(1)}
-                  </td>
-                </tr>
-              ))}
-            </DataTable>
-          </>
-        )}
-      </Panel>
-
-      <Panel
-        title="Page Score (0–100)"
-        subtitle="Score unifié : indexation, maillage, schema, contenu, trafic GSC"
+        title="Score qualité par page"
+        subtitle="Vue détaillée : indexation, liens, schema, contenu, trafic Google"
         accent="green"
+        help="Chaque colonne est une note sur 100. Le score global aide à trier les pages à traiter en premier."
       >
         <DataTable
           headers={[
             "Page",
             "Score",
-            "Index",
+            "Indexation",
             "Liens",
             "Schema",
             "Contenu",
@@ -557,7 +702,7 @@ export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
               </td>
               <td className="px-3 py-2">
                 <span
-                  className={`font-semibold tabular-nums ${
+                  className={`font-bold tabular-nums ${
                     p.pageScore >= 70
                       ? "text-emerald-600"
                       : p.pageScore >= 40
@@ -569,13 +714,9 @@ export function GrowthEngineTab({ data }: { data: GrowthEngineBundle }) {
                 </span>
               </td>
               <td className="px-3 py-2 tabular-nums text-xs">{p.indexationScore}</td>
-              <td className="px-3 py-2 tabular-nums text-xs">
-                {p.internalLinksScore}
-              </td>
+              <td className="px-3 py-2 tabular-nums text-xs">{p.internalLinksScore}</td>
               <td className="px-3 py-2 tabular-nums text-xs">{p.schemaScore}</td>
-              <td className="px-3 py-2 tabular-nums text-xs">
-                {p.contentDepthScore}
-              </td>
+              <td className="px-3 py-2 tabular-nums text-xs">{p.contentDepthScore}</td>
               <td className="px-3 py-2 tabular-nums text-xs">{p.trafficScore}</td>
             </tr>
           ))}

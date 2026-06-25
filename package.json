@@ -15,7 +15,9 @@
     "db:backfill-published": "node scripts/backfill-published-at.mjs",
     "db:check-jobs": "node scripts/check-jobs.mjs",
     "db:seed-professions": "npx tsx scripts/seed-professions.ts",
-    "seo:google-jobs-audit": "npx tsx scripts/google-jobs-audit.ts"
+    "seo:google-jobs-audit": "npx tsx scripts/google-jobs-audit.ts",
+    "validate:phase1": "npx tsx scripts/validate-phase1.ts",
+    "month2:execute": "npx tsx scripts/month2-execute.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

@@ -1,6 +1,6 @@
 import { SALARY_DATA, FEATURED_COMPANIES } from "./premium-data";
 import { estimateMoroccanSalary } from "./moroccan-salary-estimate";
-import { isMoroccanSalaryText } from "./job-salary-schema";
+import { extractSalaryFromJobText } from "./moroccan-salary-parser";
 import {
   buildJobInternalLinks,
   matchSalaryRole,
@@ -65,28 +65,28 @@ const BENEFIT_PATTERNS: { pattern: RegExp; icon: string; title: string; descript
   { pattern: /v[eé]hicule|transport/i, icon: "🚗", title: "Transport", description: "Indemnités ou véhicule de fonction." },
 ];
 
-export function parseSalaryRange(salary: string | null, title = ""): SalaryInsight {
+export function parseSalaryRange(
+  salary: string | null,
+  title = "",
+  description?: string | null,
+  requirements?: string | null
+): SalaryInsight {
+  const parsed = extractSalaryFromJobText({ salary, description, requirements });
   let min: number | null = null;
   let max: number | null = null;
   let source: SalaryInsight["source"] = "none";
 
-  if (salary && isMoroccanSalaryText(salary)) {
-    const numbers = salary.match(/\d[\d\s]*/g)?.map((n) => parseInt(n.replace(/\s/g, ""), 10)).filter((n) => n > 1000) ?? [];
-    if (numbers.length >= 2) {
-      min = Math.min(...numbers);
-      max = Math.max(...numbers);
-      source = "scraped";
-    } else if (numbers.length === 1) {
-      min = max = numbers[0];
-      source = "scraped";
-    }
+  if (parsed) {
+    min = parsed.min;
+    max = parsed.max;
+    source = "scraped";
   }
 
   const median = min && max ? Math.round((min + max) / 2) : min ?? max;
   const market = estimateMarketMedian(title);
 
   return {
-    display: source === "scraped" ? salary : null,
+    display: source === "scraped" ? (salary ?? parsed?.raw ?? null) : null,
     min,
     max,
     median,

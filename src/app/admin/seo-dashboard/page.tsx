@@ -50,16 +50,18 @@ export default async function SeoDashboardPage() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <header className="mb-8">
         <p className="text-xs font-medium uppercase tracking-widest text-mint-dim">
-          Letravail.ma — SEO Brain
+          Letravail.ma — Centre de commande SEO
         </p>
         <h1 className="mt-1 text-2xl font-bold text-navy sm:text-3xl">
-          SEO Control Dashboard
+          Tableau de bord Croissance & SEO
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-dim">
-          Monitoring + Growth Engine pour dominer le SEO emploi au Maroc.
-          Données PostgreSQL en temps réel.
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-dim">
+          Ce dashboard analyse votre site en temps réel et vous dit{" "}
+          <strong className="font-semibold text-navy">quoi faire en priorité</strong> pour
+          gagner plus de visiteurs depuis Google. Chaque section explique ce que vous voyez
+          et comment agir — aucune expertise SEO requise.
         </p>
-        <p className="mt-1 text-xs text-slate-dim">
+        <p className="mt-2 text-xs text-slate-dim">
           Dernière mise à jour :{" "}
           {new Date(monitor.indexation.generatedAt).toLocaleString("fr-MA")}
         </p>
@@ -69,6 +71,8 @@ export default async function SeoDashboardPage() {
         monitor={monitorContent}
         growth={<GrowthEngineTab data={growth} />}
         intelligence={<SeoIntelligenceTab intelligence={growth.intelligence} />}
+        topActionTitle={growth.orchestrator.topAction?.title}
+        hasGsc={Boolean(growth.gsc.lastIngestedAt)}
       />
     </div>
   );

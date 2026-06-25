@@ -35,6 +35,7 @@ export interface JobForCompliance {
   slug: string;
   title: string;
   description: string;
+  requirements?: string | null;
   company: string;
   city: string;
   country: string;
@@ -67,6 +68,7 @@ export function auditJobPostingFields(job: JobForCompliance): FieldIssue[] {
     companySlug: job.companySlug,
     tags: job.tags,
     description: job.description,
+    requirements: job.requirements,
   });
 
   issues.push({
@@ -185,13 +187,13 @@ export function auditJobPostingFields(job: JobForCompliance): FieldIssue[] {
   } else if (salary.source === "estimated") {
     issues.push({
       field: "baseSalary",
-      status: "missing",
-      impact: "high",
-      message: "Pas de salaire scrapé — baseSalary absent",
+      status: "auto_fixed",
+      impact: "medium",
+      message: "Pas de salaire scrapé — estimatedSalary renseigné (marché MA)",
     });
     issues.push({
       field: "estimatedSalary",
-      status: "auto_fixed",
+      status: "ok",
       impact: "medium",
       message: "Estimation marché marocain dans estimatedSalary",
     });

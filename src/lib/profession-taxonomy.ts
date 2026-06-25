@@ -97,29 +97,14 @@ export function getAllProfessionSlugCandidates(): string[] {
   return PROFESSION_SEEDS.map((p) => professionLandingSlug(p.slug));
 }
 
-export function matchProfessionFromTitle(title: string): ProfessionSeed | null {
-  const lower = title.toLowerCase();
-  for (const profession of PROFESSION_SEEDS) {
-    const terms = [profession.name, ...profession.aliases, ...profession.keywords];
-    if (terms.some((t) => lower.includes(t.toLowerCase()))) {
-      return profession;
-    }
-  }
-  return null;
-}
-
-export function professionJobWhere(profession: ProfessionSeed) {
-  const terms = [...profession.keywords, ...profession.aliases, profession.name];
-  return {
-    OR: terms.map((kw) => ({
-      OR: [
-        { title: { contains: kw, mode: "insensitive" as const } },
-        { description: { contains: kw, mode: "insensitive" as const } },
-      ],
-    })),
-  };
-}
-
 export function seedSlugFromName(name: string): string {
   return slugify(name);
 }
+
+export {
+  classifyJobTitle,
+  classifyJobTitleAll,
+  matchProfessionFromTitle,
+  professionJobWhere,
+  professionSearchTerms,
+} from "./profession-classifier";

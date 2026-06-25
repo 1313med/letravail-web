@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import type { IndexationReport } from "@/lib/seo-engine/types";
-import { Badge, DataTable, Panel, StatCard } from "./ui";
+import { GLOSSARY, INDEX_STATUS } from "./dashboard-guide";
+import { Badge, DataTable, Panel, StatCard, SubSection } from "./ui";
 
 type Filter = "all" | "thin" | "high-risk" | "noindex";
 
 const PAGE_TYPE_LABELS: Record<string, string> = {
   city: "Ville",
-  landing: "Landing",
+  landing: "Métier / secteur",
   salary: "Salaire",
   company: "Entreprise",
   job: "Offre",
@@ -25,51 +26,75 @@ export function IndexationPanel({ report }: { report: IndexationReport }) {
     return rows.slice(0, 100);
   }, [report.rows, filter]);
 
-  const filters: { id: Filter; label: string }[] = [
-    { id: "all", label: "Toutes" },
-    { id: "thin", label: "Pages fines" },
-    { id: "high-risk", label: "Haut risque" },
-    { id: "noindex", label: "Noindex" },
+  const filters: { id: Filter; label: string; hint: string }[] = [
+    { id: "all", label: "Toutes", hint: "Vue complète" },
+    { id: "thin", label: "Pages pauvres", hint: GLOSSARY.thinPage },
+    { id: "high-risk", label: "À risque", hint: "Problèmes SEO détectés" },
+    { id: "noindex", label: "Cachées Google", hint: "Volontairement non indexées" },
   ];
 
   return (
     <Panel
-      title="Indexation Control"
-      subtitle="Statut d'indexation par page — villes, landings, salaires, entreprises, offres (échantillon)"
+      title="Contrôle d'indexation"
+      subtitle="Quelles pages Google peut afficher dans ses résultats de recherche"
       accent="green"
+      help={GLOSSARY.indexation}
+      whatToDo={[
+        "Vérifiez que le nombre « Visible Google » augmente avec vos nouvelles pages.",
+        "Filtrez « Pages pauvres » : enrichissez le contenu ou ajoutez des offres.",
+        "Les pages « Cachées » sont normales si elles n'ont pas assez d'offres (seuils automatiques).",
+      ]}
     >
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total pages" value={report.summary.total} />
-        <StatCard label="Indexées" value={report.summary.indexed} tone="good" />
-        <StatCard label="Noindex" value={report.summary.noindexed} tone="warn" />
-        <StatCard label="Haut risque" value={report.summary.highRisk} tone="bad" />
+        <StatCard label="Pages analysées" value={report.summary.total} />
+        <StatCard
+          label="Visible Google"
+          value={report.summary.indexed}
+          hint="Peuvent apparaître dans les résultats"
+          tone="good"
+        />
+        <StatCard
+          label="Cachées (noindex)"
+          value={report.summary.noindexed}
+          hint="Souvent : pas assez d'offres"
+          tone="warn"
+        />
+        <StatCard
+          label="Haut risque"
+          value={report.summary.highRisk}
+          hint="À corriger en priorité"
+          tone="bad"
+        />
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {filters.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilter(f.id)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-              filter === f.id
-                ? "bg-navy text-white"
-                : "bg-navy/5 text-navy hover:bg-navy/10"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <SubSection title="Filtrer les pages" hint="Cliquez un filtre pour cibler un type de problème.">
+        <div className="mb-4 flex flex-wrap gap-2">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              title={f.hint}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                filter === f.id
+                  ? "bg-navy text-white"
+                  : "bg-navy/5 text-navy hover:bg-navy/10"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </SubSection>
 
       <DataTable
         headers={[
           "Type",
           "Page",
-          "URL",
-          "Index",
+          "Lien",
+          "Google",
           "Offres",
-          "Salaire",
+          "Données salaire",
           "Qualité",
           "Risque",
         ]}
@@ -93,16 +118,26 @@ export function IndexationPanel({ report }: { report: IndexationReport }) {
               </a>
             </td>
             <td className="px-3 py-2">
-              <Badge tone={row.indexStatus === "index" ? "good" : "warn"}>
-                {row.indexStatus}
+              <Badge
+                tone={
+                  INDEX_STATUS[row.indexStatus as keyof typeof INDEX_STATUS]?.tone ??
+                  "neutral"
+                }
+              >
+                {INDEX_STATUS[row.indexStatus as keyof typeof INDEX_STATUS]?.label ??
+                  row.indexStatus}
               </Badge>
             </td>
             <td className="px-3 py-2 tabular-nums">{row.jobCount}</td>
             <td className="px-3 py-2">
               {row.hasSalaryData ? (
-                <span className="text-emerald-600">✓</span>
+                <span className="text-emerald-600" title="Données salaire présentes">
+                  Oui
+                </span>
               ) : (
-                <span className="text-red-500">✗</span>
+                <span className="text-red-500" title="Salaire manquant">
+                  Non
+                </span>
               )}
             </td>
             <td className="px-3 py-2 tabular-nums font-medium">{row.qualityScore}</td>
@@ -116,7 +151,11 @@ export function IndexationPanel({ report }: { report: IndexationReport }) {
                       : "bad"
                 }
               >
-                {row.riskLevel}
+                {row.riskLevel === "low"
+                  ? "Faible"
+                  : row.riskLevel === "medium"
+                    ? "Moyen"
+                    : "Élevé"}
               </Badge>
             </td>
           </tr>
@@ -124,12 +163,13 @@ export function IndexationPanel({ report }: { report: IndexationReport }) {
       </DataTable>
       {filtered.length === 0 && (
         <p className="py-6 text-center text-sm text-slate-dim">
-          Aucune page pour ce filtre.
+          Aucune page pour ce filtre — essayez « Toutes ».
         </p>
       )}
       {report.rows.length > 100 && filter === "all" && (
         <p className="mt-3 text-xs text-slate-dim">
-          Affichage limité aux 100 premières lignes. Utilisez les filtres pour cibler les pages à risque.
+          Affichage limité aux 100 premières lignes. Utilisez les filtres pour cibler les
+          pages problématiques.
         </p>
       )}
     </Panel>

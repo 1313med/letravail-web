@@ -22,6 +22,7 @@ interface JobForSchema {
   salary?: string | null;
   citySlug?: string | null;
   companySlug?: string | null;
+  requirements?: string | null;
   tags?: { slug: string }[];
 }
 
@@ -162,6 +163,7 @@ export function buildJobPostingJsonLd(job: JobForSchema): object {
     companySlug: job.companySlug,
     tags: job.tags,
     description: job.description,
+    requirements: job.requirements,
   });
 
   if (resolved.amount) {

@@ -117,6 +117,7 @@ export default async function JobDetailPage({ params }: Props) {
         citySlug: job.location?.slug,
         companySlug: job.companyRef?.slug,
         tags: jobTags,
+        requirements: job.requirements,
       })
     : null;
 
