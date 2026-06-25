@@ -15,9 +15,11 @@ interface SalaryStats {
 interface SalaryPageContentProps {
   role: SalaryRole;
   stats: SalaryStats;
+  observationCount: number;
+  indexable: boolean;
 }
 
-export function SalaryPageContent({ role, stats }: SalaryPageContentProps) {
+export function SalaryPageContent({ role, stats, observationCount, indexable }: SalaryPageContentProps) {
   const levels = [
     { label: "Junior (P25)", value: stats.min },
     { label: "Médiane", value: stats.median },
@@ -39,14 +41,24 @@ export function SalaryPageContent({ role, stats }: SalaryPageContentProps) {
           Salaire {role.title} au Maroc
         </h1>
         <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-slate-muted">
-          Basé sur {stats.sampleSize > 0 ? `${stats.sampleSize} offres analysées` : "les données du marché"} sur Letravail.ma.
+          {indexable
+            ? `Basé sur ${observationCount} observations salariales réelles et ${stats.sampleSize} offres analysées sur Letravail.ma.`
+            : `Estimation basée sur ${stats.sampleSize > 0 ? `${stats.sampleSize} offres analysées` : "le marché marocain"} — données insuffisantes pour une analyse indexable.`}
         </p>
+
+        {!indexable && (
+          <p className="mt-3 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200">
+            Données estimées — {observationCount}/5 observations minimum
+          </p>
+        )}
 
         <div className="mt-12 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-8 sm:p-12">
           <div className="flex flex-wrap items-baseline gap-3">
             <span className="text-5xl font-bold text-mint">{stats.median.toLocaleString("fr-MA")}</span>
             <span className="text-lg text-slate-muted">MAD / mois (médiane)</span>
-            <span className="badge-mint ml-auto">{stats.trend} tendance</span>
+            <span className={indexable ? "badge-mint ml-auto" : "ml-auto rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-200"}>
+              {indexable ? `${stats.trend} tendance` : "Estimation"}
+            </span>
           </div>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-3">

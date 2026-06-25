@@ -176,3 +176,52 @@ model ScrapeLog {
   @@index([status])
   @@map("scrape_logs")
 }
+
+model GscPageMetric {
+  id          String   @id @default(cuid())
+  pagePath    String
+  pageType    String
+  query       String   @default("")
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  ctr         Float    @default(0)
+  position    Float    @default(0)
+  periodStart DateTime
+  periodEnd   DateTime
+  ingestedAt  DateTime @default(now())
+
+  @@unique([pagePath, query, periodStart, periodEnd])
+  @@index([pagePath])
+  @@index([periodEnd])
+  @@map("gsc_page_metrics")
+}
+
+model GscQueryMetric {
+  id          String   @id @default(cuid())
+  query       String
+  pagePath    String   @default("")
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  ctr         Float    @default(0)
+  position    Float    @default(0)
+  periodStart DateTime
+  periodEnd   DateTime
+  ingestedAt  DateTime @default(now())
+
+  @@unique([query, pagePath, periodStart, periodEnd])
+  @@index([query])
+  @@map("gsc_query_metrics")
+}
+
+model SeoActionLog {
+  id        String   @id @default(cuid())
+  action    String
+  status    String
+  message   String   @db.Text
+  details   Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([createdAt])
+  @@map("seo_action_logs")
+}

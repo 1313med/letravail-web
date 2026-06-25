@@ -1,4 +1,8 @@
-import { MIN_JOBS_FOR_CITY_INDEX, MIN_JOBS_FOR_LANDING_INDEX } from "./constants";
+import {
+  MIN_JOBS_FOR_CITY_INDEX,
+  MIN_JOBS_FOR_LANDING_INDEX,
+  MIN_OBSERVATIONS_FOR_SALARY_INDEX,
+} from "./constants";
 
 const FILTER_KEYS = [
   "q",
@@ -29,6 +33,13 @@ export function shouldNoindexListing(
 
 export function shouldNoindexLanding(jobCount: number): boolean {
   return jobCount < MIN_JOBS_FOR_LANDING_INDEX;
+}
+
+export function shouldNoindexSalaryPage(
+  observationCount: number,
+  minObservations = MIN_OBSERVATIONS_FOR_SALARY_INDEX
+): boolean {
+  return observationCount < minObservations;
 }
 
 export function listingCanonicalPath(

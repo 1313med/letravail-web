@@ -5,7 +5,7 @@ import { JobsDiscoveryShell } from "@/components/jobs/JobsDiscoveryShell";
 import { JobAlertSignup } from "@/components/seo/JobAlertSignup";
 import { SeoHubFooter } from "@/components/seo/SeoHubFooter";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
-import { shouldNoindexLanding, shouldNoindexListing } from "@/lib/indexation";
+import { shouldNoindexLanding, shouldNoindexListing, shouldNoindexSalaryPage } from "@/lib/indexation";
 import {
   buildLandingFaq,
   isLandingSlug,
@@ -62,10 +62,12 @@ export async function generateMetadata({ params, searchParams }: Props) {
   if (salaryRole) {
     const data = await getSalaryStatsForRole(salaryRole.slug);
     const median = data?.stats.median ?? salaryRole.fallback.median;
+    const observationCount = data?.observationCount ?? 0;
     return buildPageMetadata({
       title: `Salaire ${salaryRole.title} au Maroc (${median.toLocaleString("fr-MA")} MAD)`,
       description: `Salaire moyen ${salaryRole.title} au Maroc. Fourchettes junior, confirmé, senior et salaires par ville.`,
       path: `/${params.slug}`,
+      noindex: shouldNoindexSalaryPage(observationCount),
     });
   }
 
@@ -109,6 +111,7 @@ export default async function DynamicLandingPage({ params, searchParams: sp }: P
     const data = await getSalaryStatsForRole(salaryRole.slug);
     if (!data) notFound();
     const path = `/${params.slug}`;
+    const indexable = !shouldNoindexSalaryPage(data.observationCount);
     const faq = [
       {
         q: `Quel est le salaire moyen d'un ${salaryRole.title} au Maroc ?`,
@@ -116,23 +119,35 @@ export default async function DynamicLandingPage({ params, searchParams: sp }: P
       },
       {
         q: "Ces données sont-elles fiables ?",
-        a: "Les fourchettes sont calculées à partir des salaires affichés dans les offres publiées sur Letravail.ma.",
+        a: data.observationCount >= 5
+          ? `Les fourchettes sont calculées à partir de ${data.observationCount} observations salariales réelles sur Letravail.ma.`
+          : "Les fourchettes affichées sont des estimations basées sur le marché marocain — données insuffisantes pour une analyse indexable.",
       },
     ];
     return (
       <>
-        <JsonLd
-          data={buildSalaryJsonLd({
-            title: salaryRole.title,
-            min: data.stats.min,
-            median: data.stats.median,
-            max: data.stats.max,
-            path,
-            sampleSize: data.stats.sampleSize,
-          })}
+        {indexable && (
+          <>
+            <JsonLd
+              data={buildSalaryJsonLd({
+                title: salaryRole.title,
+                min: data.stats.min,
+                median: data.stats.median,
+                max: data.stats.max,
+                path,
+                sampleSize: data.stats.sampleSize,
+                observationCount: data.observationCount,
+              })}
+            />
+            <JsonLd data={buildFaqJsonLd(faq.map((f) => ({ question: f.q, answer: f.a })))} />
+          </>
+        )}
+        <SalaryPageContent
+          role={data.role}
+          stats={data.stats}
+          observationCount={data.observationCount}
+          indexable={indexable}
         />
-        <JsonLd data={buildFaqJsonLd(faq.map((f) => ({ question: f.q, answer: f.a })))} />
-        <SalaryPageContent role={data.role} stats={data.stats} />
         <SeoHubFooter />
       </>
     );

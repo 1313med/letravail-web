@@ -4,6 +4,7 @@ import {
   JOBS_PER_PAGE,
   MIN_JOBS_FOR_CITY_INDEX,
   MIN_JOBS_FOR_LANDING_INDEX,
+  MIN_OBSERVATIONS_FOR_SALARY_INDEX,
 } from "./constants";
 import { DISCOVERY_EXPERIENCE_LEVELS } from "./jobs-discovery";
 import {
@@ -11,7 +12,8 @@ import {
   landingToJobFilters,
   parseLandingSlug,
 } from "./landing-pages";
-import { SALARY_ROLES, median, percentile } from "./salary-data";
+import { SALARY_ROLES, median, percentile, salaryPublicSlug } from "./salary-data";
+import { shouldNoindexSalaryPage } from "./indexation";
 import { parseSalaryRange } from "./job-detail";
 
 export type JobListItem = {
@@ -48,6 +50,16 @@ export function activeJobsWhere(): Prisma.JobWhereInput {
   return {
     OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
   };
+}
+
+/** Filter JobTag rows whose linked job is still active */
+export function activeJobTagWhere(): Prisma.JobTagWhereInput {
+  return { job: activeJobsWhere() };
+}
+
+/** Tags with at least one active job (Tag → JobTag → Job) */
+export function tagHasActiveJobsWhere(): Prisma.TagWhereInput {
+  return { jobs: { some: activeJobTagWhere() } };
 }
 
 function buildJobWhere(filters: JobFilters): Prisma.JobWhereInput {
@@ -325,9 +337,33 @@ export async function getIndexableLandingSlugs(): Promise<
   return results.filter((r): r is { slug: string; updatedAt: Date } => r != null);
 }
 
+export async function getSalaryObservationCount(roleSlug: string): Promise<number> {
+  return prisma.salaryObservation.count({
+    where: { titleNorm: roleSlug },
+  });
+}
+
+export async function getSalaryObservationCounts(): Promise<Map<string, number>> {
+  const groups = await prisma.salaryObservation.groupBy({
+    by: ["titleNorm"],
+    _count: { _all: true },
+  });
+  return new Map(groups.map((g) => [g.titleNorm, g._count._all]));
+}
+
+export async function getIndexableSalarySlugs(): Promise<string[]> {
+  const counts = await getSalaryObservationCounts();
+  return SALARY_ROLES.filter((role) => {
+    const count = counts.get(role.slug) ?? 0;
+    return !shouldNoindexSalaryPage(count, MIN_OBSERVATIONS_FOR_SALARY_INDEX);
+  }).map((role) => salaryPublicSlug(role.slug));
+}
+
 export async function getSalaryStatsForRole(roleSlug: string) {
   const role = SALARY_ROLES.find((r) => r.slug === roleSlug);
   if (!role) return null;
+
+  const observationCount = await getSalaryObservationCount(roleSlug);
 
   const titleOr = role.keywords.map((kw) => ({
     title: { contains: kw, mode: "insensitive" as const },
@@ -383,7 +419,7 @@ export async function getSalaryStatsForRole(roleSlug: string) {
       .slice(0, 5),
   };
 
-  return { role, stats: computed, jobs };
+  return { role, stats: computed, jobs, observationCount };
 }
 
 export async function getTotalJobCount() {
@@ -517,6 +553,7 @@ export async function getIndexableCompanySlugs() {
 
 export async function getRecentJobSlugs(limit = 500) {
   const jobs = await prisma.job.findMany({
+    where: activeJobsWhere(),
     select: { slug: true },
     orderBy: jobListOrderBy,
     take: limit,

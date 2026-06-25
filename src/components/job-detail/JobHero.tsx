@@ -164,7 +164,7 @@ interface JobHeroProps {
   companySlug?: string;
   city: string;
   citySlug?: string;
-  salary: string | null;
+  salaryDisplay?: { text: string; isEstimated: boolean } | null;
   contractType: string | null;
   remote: boolean;
   description: string;
@@ -173,7 +173,7 @@ interface JobHeroProps {
 }
 
 export function JobDetailHero({
-  title, company, companySlug, city, citySlug, salary, contractType, remote, description, publishedAt, expired,
+  title, company, companySlug, city, citySlug, salaryDisplay, contractType, remote, description, publishedAt, expired,
 }: JobHeroProps) {
   const logo = companySlug ? getCompanyLogo(companySlug) : undefined;
   const isTop = companySlug && TOP_EMPLOYER_SLUGS.has(companySlug);
@@ -183,7 +183,11 @@ export function JobDetailHero({
   const pills = [
     isTop && { icon: Star, label: "Top Employeur", accent: true },
     { icon: MapPin, label: city, href: citySlug ? `/emplois/${citySlug}` : undefined },
-    salary && { icon: Banknote, label: salary, accent: true },
+    salaryDisplay && {
+      icon: Banknote,
+      label: salaryDisplay.isEstimated ? `${salaryDisplay.text}` : salaryDisplay.text,
+      accent: !salaryDisplay.isEstimated,
+    },
     contractType && { icon: FileText, label: contractType },
     { icon: Building2, label: workMode },
     date && { icon: Clock, label: formatRelativeDate(date) },

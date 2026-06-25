@@ -1,6 +1,11 @@
 import { SALARY_DATA, FEATURED_COMPANIES } from "./premium-data";
-import { sectorLandingSlug, comboLandingSlug, SEO_CITIES } from "./landing-pages";
 import { estimateMoroccanSalary } from "./moroccan-salary-estimate";
+import { isMoroccanSalaryText } from "./job-salary-schema";
+import {
+  buildJobInternalLinks,
+  matchSalaryRole,
+  type JobLinkContext,
+} from "./seo-engine/internal-links";
 
 export interface JobSection {
   id: string;
@@ -15,6 +20,7 @@ export interface SalaryInsight {
   median: number | null;
   marketMedian: number;
   trend: string;
+  source: "scraped" | "estimated" | "none";
 }
 
 export interface WhyHighlight {
@@ -62,14 +68,17 @@ const BENEFIT_PATTERNS: { pattern: RegExp; icon: string; title: string; descript
 export function parseSalaryRange(salary: string | null, title = ""): SalaryInsight {
   let min: number | null = null;
   let max: number | null = null;
+  let source: SalaryInsight["source"] = "none";
 
-  if (salary) {
+  if (salary && isMoroccanSalaryText(salary)) {
     const numbers = salary.match(/\d[\d\s]*/g)?.map((n) => parseInt(n.replace(/\s/g, ""), 10)).filter((n) => n > 1000) ?? [];
     if (numbers.length >= 2) {
       min = Math.min(...numbers);
       max = Math.max(...numbers);
+      source = "scraped";
     } else if (numbers.length === 1) {
       min = max = numbers[0];
+      source = "scraped";
     }
   }
 
@@ -77,12 +86,13 @@ export function parseSalaryRange(salary: string | null, title = ""): SalaryInsig
   const market = estimateMarketMedian(title);
 
   return {
-    display: salary,
+    display: source === "scraped" ? salary : null,
     min,
     max,
     median,
     marketMedian: market.median,
     trend: market.trend,
+    source,
   };
 }
 
@@ -236,9 +246,9 @@ export function buildJobFaq(job: {
   return [
     {
       q: `Quel salaire pour ${job.title} au Maroc ?`,
-      a: salaryInsight.display
-        ? `Pour ce poste chez ${job.company}, la fourchette annoncée est ${salaryInsight.display}. La médiane du marché marocain pour des postes similaires est d'environ ${salaryInsight.marketMedian.toLocaleString("fr-MA")} MAD.`
-        : `Les salaires pour ${job.title} au Maroc varient selon l'expérience. Consultez notre section salaires pour des fourchettes détaillées par métier.`,
+      a: salaryInsight.source === "scraped" && salaryInsight.display
+        ? `Pour ce poste chez ${job.company}, la fourchette annoncée est ${salaryInsight.display} (donnée réelle). La médiane du marché marocain pour des postes similaires est d'environ ${salaryInsight.marketMedian.toLocaleString("fr-MA")} MAD.`
+        : `Pour ${job.title} au Maroc, l'estimation de marché est d'environ ${salaryInsight.marketMedian.toLocaleString("fr-MA")} MAD/mois (donnée estimée). Consultez notre section salaires pour des fourchettes détaillées par métier.`,
     },
     {
       q: `Quelles qualifications pour ${job.title} ?`,
@@ -279,34 +289,44 @@ export function buildRelatedSearches(job: {
   location: { slug: string } | null;
   tags: { tag: { slug: string; name: string } }[];
 }): { label: string; href: string }[] {
-  const links: { label: string; href: string }[] = [];
-  const citySlug = job.location?.slug;
+  const ctx: JobLinkContext = {
+    title: job.title,
+    company: job.company,
+    city: job.city,
+    contractType: job.contractType,
+    companyRef: job.companyRef,
+    location: job.location,
+    tags: job.tags,
+    salaryRoleSlug: matchSalaryRole(job.title)?.slug ?? null,
+  };
 
-  if (job.companyRef?.slug && citySlug) {
-    links.push({ label: `Emploi ${job.company} ${job.city}`, href: `/emplois/${citySlug}?company=${job.companyRef.slug}` });
-  }
-  if (citySlug) {
-    links.push({ label: `Emploi ${job.city}`, href: `/emplois/${citySlug}` });
-  }
-  if (job.contractType && citySlug) {
-    links.push({ label: `Emploi ${job.contractType} ${job.city}`, href: `/emplois/${citySlug}?contract=${encodeURIComponent(job.contractType)}` });
-  }
-  for (const tag of job.tags.slice(0, 2)) {
-    links.push({ label: `Emploi ${tag.tag.name} Maroc`, href: `/${sectorLandingSlug(tag.tag.slug)}` });
-    if (citySlug) {
-      const cityShort = SEO_CITIES.find((c) => c.slug === citySlug)?.short;
-      if (cityShort) {
-        links.push({
-          label: `Emploi ${tag.tag.name} ${job.city}`,
-          href: `/${comboLandingSlug(tag.tag.slug, cityShort)}`,
-        });
-      }
-    }
-  }
-  const titleWord = job.title.split(" ").slice(0, 3).join(" ");
-  links.push({ label: `Emploi ${titleWord} Maroc`, href: `/emplois?q=${encodeURIComponent(titleWord)}` });
+  const internal = buildJobInternalLinks(ctx);
 
-  return links.slice(0, 6);
+  const links = internal.map((l) => ({ label: l.label, href: l.href }));
+
+  if (job.companyRef?.slug && job.location?.slug) {
+    links.unshift({
+      label: `Emploi ${job.company} ${job.city}`,
+      href: `/emplois/${job.location.slug}?company=${job.companyRef.slug}`,
+    });
+  }
+
+  if (job.contractType && job.location?.slug) {
+    links.push({
+      label: `Emploi ${job.contractType} ${job.city}`,
+      href: `/emplois/${job.location.slug}?contract=${encodeURIComponent(job.contractType)}`,
+    });
+  }
+
+  const seen = new Set<string>();
+  const deduped: { label: string; href: string }[] = [];
+  for (const link of links) {
+    if (seen.has(link.href)) continue;
+    seen.add(link.href);
+    deduped.push(link);
+  }
+
+  return deduped.slice(0, 8);
 }
 
 export function getWorkMode(job: { remote: boolean; description: string }): string {

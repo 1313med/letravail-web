@@ -1,21 +1,22 @@
 import { MetadataRoute } from "next";
 import { getSiteUrl } from "@/lib/constants";
-import { SALARY_ROLES, salaryPublicSlug } from "@/lib/salary-data";
 import {
   getAllJobSlugs,
   getIndexableCitySlugs,
   getIndexableCompanySlugs,
   getIndexableLandingSlugs,
+  getIndexableSalarySlugs,
 } from "@/lib/queries";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
 
-  const [jobs, cities, companies, landings] = await Promise.all([
+  const [jobs, cities, companies, landings, salaries] = await Promise.all([
     getAllJobSlugs(50000),
     getIndexableCitySlugs(),
     getIndexableCompanySlugs(),
     getIndexableLandingSlugs(),
+    getIndexableSalarySlugs(),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -26,8 +27,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/a-propos`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
   ];
 
-  const salaryPages: MetadataRoute.Sitemap = SALARY_ROLES.map((role) => ({
-    url: `${siteUrl}/${salaryPublicSlug(role.slug)}`,
+  const salaryPages: MetadataRoute.Sitemap = salaries.map((slug) => ({
+    url: `${siteUrl}/${slug}`,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.8,

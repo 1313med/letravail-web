@@ -26,6 +26,7 @@ import {
 import { TOP_EMPLOYER_SLUGS } from "@/lib/jobs-discovery";
 import { getJobBySlug, getRecentJobSlugs, getSimilarJobs, getCompanyBySlug } from "@/lib/queries";
 import { buildBreadcrumbJsonLd, buildCanonical, buildFaqJsonLd, buildJobPostingJsonLd, buildPageMetadata } from "@/lib/seo";
+import { formatJobCardSalaryFromJob } from "@/lib/job-card-salary";
 import { excerpt, isJobExpired } from "@/lib/utils";
 
 export const revalidate = REVALIDATE_SECONDS;
@@ -66,6 +67,20 @@ export default async function JobDetailPage({ params }: Props) {
   const benefits = extractBenefits(job.description, job.requirements, job.remote);
   const whyHighlights = buildWhyHighlights(job, isTopEmployer);
   const salaryInsight = parseSalaryRange(job.salary, job.title);
+  const jobTags = job.tags.map((t) => ({ slug: t.tag.slug, name: t.tag.name }));
+  const salaryCard = formatJobCardSalaryFromJob({
+    salary: job.salary,
+    title: job.title,
+    city: job.city,
+    companyRef: job.companyRef,
+    location: job.location,
+    tags: jobTags,
+    description: job.description,
+  });
+  const salaryDisplay =
+    salaryCard.type !== "undisclosed"
+      ? { text: salaryCard.text, isEstimated: salaryCard.type === "estimated" }
+      : null;
   const faqItems = buildJobFaq(job);
   const relatedLinks = buildRelatedSearches(job);
   const otherCompanyJobs = companyData?.jobs.filter((j) => j.id !== job.id) ?? [];
@@ -78,12 +93,25 @@ export default async function JobDetailPage({ params }: Props) {
     { name: job.title, url: buildCanonical(`/emploi/${job.slug}`) },
   ]);
 
-  const jobJsonLd = buildJobPostingJsonLd({
-    slug: job.slug, title: job.title, description: job.description,
-    company: job.company, city: job.city, country: job.country,
-    contractType: job.contractType, remote: job.remote,
-    applicationUrl: job.applicationUrl, publishedAt: job.publishedAt, expiresAt: job.expiresAt,
-  });
+  const jobJsonLd = !expired
+    ? buildJobPostingJsonLd({
+        slug: job.slug,
+        title: job.title,
+        description: job.description,
+        company: job.company,
+        city: job.city,
+        country: job.country,
+        contractType: job.contractType,
+        remote: job.remote,
+        applicationUrl: job.applicationUrl,
+        publishedAt: job.publishedAt,
+        expiresAt: job.expiresAt,
+        salary: job.salary,
+        citySlug: job.location?.slug,
+        companySlug: job.companyRef?.slug,
+        tags: jobTags,
+      })
+    : null;
 
   const breadcrumbs = [
     { label: "Accueil", href: "/" },
@@ -94,7 +122,7 @@ export default async function JobDetailPage({ params }: Props) {
   return (
     <>
       <JobViewTracker slug={job.slug} />
-      <JsonLd data={[breadcrumbJsonLd, jobJsonLd]} />
+      <JsonLd data={[breadcrumbJsonLd, ...(jobJsonLd ? [jobJsonLd] : [])]} />
       <JsonLd data={buildFaqJsonLd(faqItems.map((f) => ({ question: f.q, answer: f.a })))} />
 
       <div className="section-dark min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-16">
@@ -104,7 +132,7 @@ export default async function JobDetailPage({ params }: Props) {
           companySlug={companySlug}
           city={job.city}
           citySlug={citySlug}
-          salary={job.salary}
+          salaryDisplay={salaryDisplay}
           contractType={job.contractType}
           remote={job.remote}
           description={job.description}

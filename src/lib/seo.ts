@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { getSiteUrl, SITE_LOCALE, SITE_NAME } from "./constants";
+import { resolveJobPostingSalary } from "./job-salary-schema";
 import { mapContractType } from "./utils";
 
 interface JobForSchema {
@@ -14,6 +15,10 @@ interface JobForSchema {
   applicationUrl: string;
   publishedAt: Date | null;
   expiresAt: Date | null;
+  salary?: string | null;
+  citySlug?: string | null;
+  companySlug?: string | null;
+  tags?: { slug: string }[];
 }
 
 export function buildCanonical(path: string): string {
@@ -123,6 +128,24 @@ export function buildJobPostingJsonLd(job: JobForSchema): object {
     jsonLd.jobLocationType = "TELECOMMUTE";
   }
 
+  const resolved = resolveJobPostingSalary({
+    salary: job.salary ?? null,
+    title: job.title,
+    city: job.city,
+    citySlug: job.citySlug,
+    companySlug: job.companySlug,
+    tags: job.tags,
+    description: job.description,
+  });
+
+  if (resolved.amount) {
+    if (resolved.source === "scraped") {
+      jsonLd.baseSalary = resolved.amount;
+    } else if (resolved.source === "estimated") {
+      jsonLd.estimatedSalary = resolved.amount;
+    }
+  }
+
   return jsonLd;
 }
 
@@ -207,7 +230,9 @@ export function buildSalaryJsonLd(role: {
   max: number;
   path: string;
   sampleSize: number;
+  observationCount: number;
 }): object {
+  const basedOnObservations = role.observationCount >= role.sampleSize;
   return {
     "@context": "https://schema.org",
     "@type": "Occupation",
@@ -228,6 +253,8 @@ export function buildSalaryJsonLd(role: {
       },
     ],
     url: buildCanonical(role.path),
-    description: `Salaire ${role.title} au Maroc basé sur ${role.sampleSize} offres analysées.`,
+    description: basedOnObservations
+      ? `Salaire ${role.title} au Maroc basé sur ${role.observationCount} observations réelles.`
+      : `Salaire ${role.title} au Maroc basé sur ${role.sampleSize} offres analysées.`,
   };
 }

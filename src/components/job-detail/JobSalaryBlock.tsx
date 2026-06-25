@@ -4,9 +4,11 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { TrendingUp, BarChart3 } from "lucide-react";
 import { SalaryInsight } from "@/lib/job-detail";
+import { MOROCCAN_SALARY_TOOLTIP } from "@/lib/moroccan-salary-estimate";
 import { AnimatedNumber } from "@/lib/motion";
 
 export function JobSalaryBlock({ insight, title }: { insight: SalaryInsight; title: string }) {
+  const isScraped = insight.source === "scraped";
   const jobMedian = insight.median ?? insight.marketMedian;
   const marketPct = insight.marketMedian > 0 ? Math.round((jobMedian / insight.marketMedian) * 100) : 100;
 
@@ -20,26 +22,35 @@ export function JobSalaryBlock({ insight, title }: { insight: SalaryInsight; tit
           </h2>
           <p className="mt-1 line-clamp-2 text-xs text-slate-muted sm:mt-2 sm:text-sm">{title}</p>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300 sm:px-3 sm:py-1 sm:text-xs">
-          <TrendingUp className="h-3 w-3" /> {insight.trend}
-        </span>
+        {isScraped ? (
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300 sm:px-3 sm:py-1 sm:text-xs">
+            <TrendingUp className="h-3 w-3" /> Donnée réelle
+          </span>
+        ) : (
+          <span
+            className="flex shrink-0 items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-200 sm:px-3 sm:py-1 sm:text-xs"
+            title={MOROCCAN_SALARY_TOOLTIP}
+          >
+            Estimation
+          </span>
+        )}
       </div>
 
       <div className="mt-4 space-y-4 sm:mt-8 sm:grid sm:grid-cols-2 sm:gap-8 sm:space-y-0">
         <div>
-          {insight.display && (
-            <p className="text-xs text-slate-dim sm:text-sm">Fourchette annoncée</p>
-          )}
+          <p className="text-xs text-slate-dim sm:text-sm">
+            {isScraped ? "Salaire annoncé (donnée réelle)" : "Estimation marché marocain"}
+          </p>
           <p className="mt-0.5 text-2xl font-extrabold text-mint-glow sm:mt-1 sm:text-5xl">
-            {insight.display ? (
+            {isScraped && insight.display ? (
               insight.display
             ) : (
               <>
-                <AnimatedNumber value={jobMedian} /> <span className="text-sm font-normal text-white/40 sm:text-lg">MAD/mois</span>
+                <AnimatedNumber value={jobMedian} /> <span className="text-sm font-normal text-white/40 sm:text-lg">MAD/mois estimé</span>
               </>
             )}
           </p>
-          {insight.min && insight.max && insight.min !== insight.max && (
+          {isScraped && insight.min && insight.max && insight.min !== insight.max && (
             <p className="mt-1 text-xs text-slate-muted sm:mt-2 sm:text-sm">
               {insight.min.toLocaleString("fr-MA")} – {insight.max.toLocaleString("fr-MA")} MAD
             </p>
