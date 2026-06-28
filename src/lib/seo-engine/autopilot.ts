@@ -1,6 +1,5 @@
 import { getRankingFeedbackReport } from "./ranking-feedback-engine";
 import { getIndexationReport } from "./reports";
-import { getPagePerformanceMap } from "./gsc-engine";
 import { getSiteUrl } from "../constants";
 import {
   buildInternalLinkAutopilotBatch,

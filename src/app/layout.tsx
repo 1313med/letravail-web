@@ -1,7 +1,6 @@
 import { Inter } from "next/font/google";
 import type { Metadata } from "next";
-import { PremiumHeader, MobileBottomNav, AiAssistant } from "@/components/premium/Navigation";
-import { PremiumFooter } from "@/components/premium/Footer";
+import { ConditionalSiteChrome } from "@/components/layout/ConditionalSiteChrome";
 import { Analytics } from "@/components/Analytics";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_DESCRIPTION, SITE_LOCALE, SITE_NAME } from "@/lib/constants";
@@ -40,11 +39,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <Analytics />
         <JsonLd data={buildOrganizationJsonLd()} />
-        <PremiumHeader />
-        <main className="pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
-        <PremiumFooter />
-        <MobileBottomNav />
-        <AiAssistant />
+        <ConditionalSiteChrome>{children}</ConditionalSiteChrome>
       </body>
     </html>
   );

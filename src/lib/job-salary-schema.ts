@@ -2,7 +2,6 @@ import { estimateMoroccanSalary } from "./moroccan-salary-estimate";
 import {
   extractSalaryFromJobText,
   parseMoroccanSalaryText,
-  type ParsedMoroccanSalary,
 } from "./moroccan-salary-parser";
 
 export type JobSalarySource = "scraped" | "estimated" | "none";
@@ -12,7 +11,6 @@ export { parseMoroccanSalaryText, extractSalaryFromJobText, formatSalaryRange } 
 
 export function parseScrapedMadSalary(
   salary: string | null,
-  title = "",
   description?: string | null,
   requirements?: string | null
 ): { min: number; max: number } | null {
@@ -53,7 +51,6 @@ export function resolveJobPostingSalary(job: JobSalaryInput): {
 } {
   const scraped = parseScrapedMadSalary(
     job.salary,
-    job.title,
     job.description,
     job.requirements
   );

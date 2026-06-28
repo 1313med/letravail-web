@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { JobsResultsContext } from "./JobsResultsContext";
 
 interface JobsStickyToolbarProps {

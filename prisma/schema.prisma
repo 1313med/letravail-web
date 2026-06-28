@@ -7,32 +7,60 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Scraper-owned models (read by intelligence dashboard) ───────────────────
+
 model Job {
-  id             String    @id @default(cuid())
-  source         String
-  sourceJobId    String
-  hash           String    @unique
-  slug           String    @unique
-  title          String
-  company        String
-  city           String
-  country        String    @default("Morocco")
-  description    String    @db.Text
-  requirements   String?   @db.Text
-  salary         String?
-  contractType   String?
-  remote         Boolean   @default(false)
-  applicationUrl String
-  publishedAt    DateTime?
-  expiresAt      DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  source             String
+  sourceJobId        String
+  hash               String    @unique
+  slug               String    @unique
+  title              String
+  company            String
+  city               String
+  country            String    @default("Morocco")
+  description        String    @db.Text
+  requirements       String?   @db.Text
+  salary             String?
+  contractType       String?
+  remote             Boolean   @default(false)
+  applicationUrl     String
+  publishedAt        DateTime?
+  expiresAt          DateTime?
+  firstSeenAt        DateTime  @default(now())
+  lastSeenAt         DateTime  @default(now())
+  lastVerifiedAt     DateTime?
+  lastModifiedAt     DateTime?
+  sourcePublishedAt  DateTime?
+  crawlCount         Int       @default(0)
+  isActive           Boolean   @default(true)
+  archivedAt         DateTime?
+  validationStatus   String?   @default("valid")
+  validationFlags    String[]  @default([])
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  rawHtml            String?   @db.Text
+  extractionMetadata Json?
+  experienceLevel    String?
+  experienceYears    String?
+  educationLevel     String?
+  salaryMin          Int?
+  salaryMax          Int?
+  salaryCurrency     String?
+  salaryPeriod       String?
+  salaryNet          Boolean?
+  qualityScore       Float?
+  descriptionScore   Float?
+  contentHash        String?
 
   companyId  String?
   locationId String?
-  companyRef Company? @relation(fields: [companyId], references: [id])
-  location   Location? @relation(fields: [locationId], references: [id])
+  companyRef Company?     @relation(fields: [companyId], references: [id])
+  location   Location?    @relation(fields: [locationId], references: [id])
   tags       JobTag[]
+  skills     JobSkill[]
+  versions   JobVersion[]
 
   @@unique([source, sourceJobId])
   @@index([slug])
@@ -42,37 +70,216 @@ model Job {
   @@index([publishedAt])
   @@index([source])
   @@index([hash])
+  @@index([experienceLevel])
+  @@index([educationLevel])
+  @@index([qualityScore])
+  @@index([lastSeenAt])
+  @@index([isActive, publishedAt])
+  @@index([contentHash])
+  @@index([isActive, lastSeenAt])
   @@map("jobs")
 }
 
+model JobVersion {
+  id           String   @id @default(cuid())
+  jobId        String
+  contentHash  String
+  title        String
+  description  String   @db.Text
+  requirements String?  @db.Text
+  rawHtml      String?  @db.Text
+  capturedAt   DateTime @default(now())
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([contentHash])
+  @@map("job_versions")
+}
+
 model Company {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  slug      String   @unique
-  logoUrl   String?
-  websiteUrl String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  jobs      Job[]
+  id                   String         @id @default(cuid())
+  name                 String         @unique
+  slug                 String         @unique
+  logoUrl              String?
+  websiteUrl           String?
+  industry             String?
+  size                 String?
+  careerPageUrl        String?
+  linkedinUrl          String?
+  headquartersCity     String?
+  sector               String?
+  description          String?        @db.Text
+  canonicalName        String?
+  resolutionConfidence Float?
+  ownershipType        String?
+  foundedYear          Int?
+  moroccanOffices      String[]       @default([])
+  firstSeenAt          DateTime?
+  lastCrawlAt          DateTime?
+  activeJobCount       Int            @default(0)
+  archivedJobCount     Int            @default(0)
+  hiringFrequency      String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  jobs                 Job[]
+  aliases              CompanyAlias[]
 
   @@index([slug])
   @@index([name])
+  @@index([canonicalName])
   @@map("companies")
 }
 
+model CompanyAlias {
+  id         String   @id @default(cuid())
+  alias      String   @unique
+  companyId  String
+  confidence Float    @default(1)
+  isManual   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("company_aliases")
+}
+
+model SourceProfile {
+  id                   String    @id @default(cuid())
+  sourceName           String    @unique
+  category             String
+  companyName          String
+  status               String    @default("active")
+  crawlIntervalMinutes Int       @default(360)
+  lastCrawlAt          DateTime?
+  nextCrawlAt          DateTime?
+  atsPlatform          String?
+  careerPageUrl        String?
+  crawlStrategy        String?
+  jsRenderingRequired  Boolean   @default(false)
+  lastProbedAt         DateTime?
+  probeConfidence      Float?
+  priorityScore        Float?
+  intelligenceScore    Float?
+  freshnessScore       Float?
+  jobsDiscovered       Int       @default(0)
+  activeJobs           Int       @default(0)
+  archivedJobs         Int       @default(0)
+  avgDescriptionLength Int?
+  skillCoverage        Float?
+  experienceCoverage   Float?
+  avgCrawlDurationMs   Int?
+  failureRate          Float?
+  duplicateRate        Float?
+  avgDailyAdditions    Float?
+  avgDailyRemovals     Float?
+  lastValidationReport Json?
+  metadata             Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status])
+  @@index([nextCrawlAt])
+  @@index([intelligenceScore])
+  @@index([priorityScore])
+  @@map("source_profiles")
+}
+
+model EmployerAtsIntelligence {
+  id                    String   @id @default(cuid())
+  sourceName            String?
+  companyName           String
+  inputUrl              String
+  careersPageUrl        String?
+  finalUrl              String?
+  atsPlatform           String
+  confidence            Float
+  crawlStrategy         String
+  recommendedAdapter    String?
+  apiEndpoints          String[] @default([])
+  platformConfig        Json?
+  robotsAllowed         Boolean  @default(true)
+  sitemapUrls           String[] @default([])
+  jsRenderingRequired   Boolean  @default(false)
+  paginationType        String?
+  detailEndpoint        String?
+  applicationUrlPattern String?
+  authRequired          Boolean  @default(false)
+  estimatedJobVolume    String?
+  technicalComplexity   String?
+  maintenanceEffort     String?
+  graphqlDetected       Boolean  @default(false)
+  structuredData        Boolean  @default(false)
+  issues                String[] @default([])
+  onboardingStatus      String   @default("probed")
+  probedAt              DateTime @default(now())
+  probeVersion          Int      @default(1)
+  rawProbe              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([atsPlatform])
+  @@index([companyName])
+  @@index([confidence])
+  @@index([onboardingStatus])
+  @@index([probedAt])
+  @@index([sourceName])
+  @@map("employer_ats_intelligence")
+}
+
 model Location {
-  id        String   @id @default(cuid())
-  city      String
-  country   String   @default("Morocco")
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  jobs      Job[]
+  id            String   @id @default(cuid())
+  city          String
+  country       String   @default("Morocco")
+  region        String?
+  canonicalCity String?
+  slug          String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  jobs          Job[]
 
   @@unique([city, country])
   @@index([city])
   @@index([slug])
+  @@index([region])
   @@map("locations")
+}
+
+model Skill {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  slug        String            @unique
+  category    String?
+  createdAt   DateTime          @default(now())
+  jobs        JobSkill[]
+  professions ProfessionSkill[]
+
+  @@index([slug])
+  @@index([name])
+  @@index([category])
+  @@map("skills")
+}
+
+model JobSkill {
+  jobId      String
+  skillId    String
+  confidence Float?
+  job        Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill      Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([jobId, skillId])
+  @@map("job_skills")
+}
+
+model ProfessionSkill {
+  profession String
+  skillId    String
+  jobCount   Int      @default(0)
+  updatedAt  DateTime @updatedAt
+  skill      Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([profession, skillId])
+  @@index([profession])
+  @@map("profession_skills")
 }
 
 model Tag {
@@ -97,33 +304,30 @@ model JobTag {
   @@map("job_tags")
 }
 
-model Subscriber {
-  id         String   @id @default(cuid())
-  email      String   @unique
-  citySlug   String?
-  sectorSlug String?
-  source     String   @default("website")
-  createdAt  DateTime @default(now())
+model ScrapeLog {
+  id           String    @id @default(cuid())
+  source       String
+  category     String
+  status       String
+  startedAt    DateTime
+  endedAt      DateTime?
+  durationMs   Int?
+  jobsFound    Int       @default(0)
+  jobsInserted Int       @default(0)
+  jobsUpdated  Int       @default(0)
+  duplicates   Int       @default(0)
+  errorMessage String?   @db.Text
+  createdAt    DateTime  @default(now())
 
-  @@index([sectorSlug])
-  @@index([citySlug])
-  @@map("subscribers")
+  @@index([source])
+  @@index([category])
+  @@index([startedAt])
+  @@index([status])
+  @@map("scrape_logs")
 }
 
-model JobTitleTaxonomy {
-  id         String   @id @default(cuid())
-  slug       String   @unique
-  label      String
-  parentSlug String?
-  sectorSlug String?
-  keywords   String[] @default([])
-  createdAt  DateTime @default(now())
+// ─── Website-owned models ──────────────────────────────────────────────────────
 
-  @@index([sectorSlug])
-  @@map("job_title_taxonomy")
-}
-
-/// First-class profession entity — powers profession pages, salary links, knowledge graph
 model Profession {
   id           String   @id @default(cuid())
   slug         String   @unique
@@ -140,15 +344,6 @@ model Profession {
   @@index([sectorSlug])
   @@index([salarySlug])
   @@map("professions")
-}
-
-model Skill {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String   @unique
-  createdAt DateTime @default(now())
-
-  @@map("skills")
 }
 
 model SalaryObservation {
@@ -185,26 +380,30 @@ model MarketSnapshot {
   @@map("market_snapshots")
 }
 
-model ScrapeLog {
-  id           String    @id @default(cuid())
-  source       String
-  category     String
-  status       String
-  startedAt    DateTime
-  endedAt      DateTime?
-  durationMs   Int?
-  jobsFound    Int       @default(0)
-  jobsInserted Int       @default(0)
-  jobsUpdated  Int       @default(0)
-  duplicates   Int       @default(0)
-  errorMessage String?   @db.Text
-  createdAt    DateTime  @default(now())
+model JobTitleTaxonomy {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  label      String
+  parentSlug String?
+  sectorSlug String?
+  keywords   String[] @default([])
+  createdAt  DateTime @default(now())
 
-  @@index([source])
-  @@index([category])
-  @@index([startedAt])
-  @@index([status])
-  @@map("scrape_logs")
+  @@index([sectorSlug])
+  @@map("job_title_taxonomy")
+}
+
+model Subscriber {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  citySlug   String?
+  sectorSlug String?
+  source     String   @default("website")
+  createdAt  DateTime @default(now())
+
+  @@index([sectorSlug])
+  @@index([citySlug])
+  @@map("subscribers")
 }
 
 model GscPageMetric {

@@ -10,7 +10,6 @@ import { SALARY_ROLES, median, percentile, salaryPublicSlug } from "../salary-da
 import type {
   ContentBlock,
   ContentGenerationReport,
-  ContentPageType,
   GeneratedPageContent,
 } from "./types";
 

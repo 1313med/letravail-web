@@ -24,7 +24,7 @@ async function main() {
   console.log("Jobs by source:");
   const bySource = new Map<string, number>();
   jobs.forEach((j) => bySource.set(j.source, (bySource.get(j.source) ?? 0) + 1));
-  for (const [s, c] of bySource) console.log(`  ${s}: ${c}`);
+  bySource.forEach((c, s) => console.log(`  ${s}: ${c}`));
 
   console.log("\nPattern hits in description+requirements:");
   for (const p of patterns) {

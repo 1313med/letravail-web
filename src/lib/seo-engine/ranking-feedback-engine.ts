@@ -1,4 +1,3 @@
-import { getSiteUrl } from "../constants";
 import { classifyPagePath } from "./gsc-engine";
 import { buildJobInternalLinks } from "./internal-links";
 import { computePagePerformanceScore, expectedCtrForPosition } from "./page-scoring";

@@ -4,8 +4,7 @@ import {
   MIN_OBSERVATIONS_FOR_SALARY_INDEX,
 } from "../constants";
 import { prisma } from "../db";
-import { shouldNoindexSalaryPage } from "../indexation";
-import { activeJobsWhere, getCityJobCount, tagHasActiveJobsWhere, activeJobTagWhere } from "../queries";
+import { activeJobsWhere, getCityJobCount, tagHasActiveJobsWhere } from "../queries";
 import { SALARY_ROLES } from "../salary-data";
 import {
   buildPageIndex,
@@ -70,7 +69,7 @@ function priorityFromGap(
 }
 
 async function analyzeStructureGaps(): Promise<CompetitorStructureGap[]> {
-  const [cityCount, salaryCount, companyCount, tagCount] = await Promise.all([
+  const [, salaryCount, companyCount, tagCount] = await Promise.all([
     prisma.location.count(),
     prisma.salaryObservation
       .groupBy({ by: ["titleNorm"], _count: { _all: true } })

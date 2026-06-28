@@ -200,12 +200,10 @@ async function report3SalaryCoverage() {
   });
   const obsMap = new Map(allObs.map((o) => [o.titleNorm, o._count._all]));
 
-  const salaryRoleSlugs = new Set(SALARY_ROLES.map((r) => r.slug));
-  const professionSalarySlugs = [
-    ...new Set(
-      PROFESSION_SEEDS.map((p) => p.salarySlug).filter(Boolean) as string[]
-    ),
-  ];
+  const salaryRoleSlugs = new Set<string>(SALARY_ROLES.map((r) => r.slug));
+  const professionSalarySlugs = Array.from(
+    new Set(PROFESSION_SEEDS.map((p) => p.salarySlug).filter(Boolean) as string[])
+  );
 
   const rows = await Promise.all(
     professionSalarySlugs.map(async (slug) => {
@@ -369,7 +367,7 @@ async function report5GoogleJobs() {
       jobsBelow70: audits.filter((a) => a.score < 70).length,
       fullyCompliant: report.fullyCompliant,
       targetMet: report.avgComplianceScore >= 90,
-      topMissingFields: [...fieldFreq.entries()]
+      topMissingFields: Array.from(fieldFreq.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
         .map(([field, count]) => ({ field, count, pct: Math.round((count / report.totalJobs) * 100) })),

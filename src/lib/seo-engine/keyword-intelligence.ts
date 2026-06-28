@@ -24,13 +24,6 @@ const GENERAL_PATTERNS = [
   /job\s+maroc/i,
 ];
 
-const CITY_PATTERNS = [
-  /emploi\s+(.+)/i,
-  /offre.*emploi.*(.+)/i,
-  /travail\s+(.+)/i,
-  /recrutement\s+(.+)/i,
-];
-
 const SALARY_PATTERNS = [
   /salaire\s+(.+)/i,
   /rémunération\s+(.+)/i,
