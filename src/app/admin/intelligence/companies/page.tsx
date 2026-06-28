@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { IntelligenceShell, IntelligenceMobileNav } from "@/components/intelligence/IntelligenceShell";
-import { IntelPanel } from "@/components/intelligence/ui";
+import { IntelActivationBadge, IntelPanel } from "@/components/intelligence/ui";
 import { searchCompanies } from "@/lib/intelligence";
 import { formatPercent, formatRelativeTime, formatScore } from "@/lib/intelligence/formatters";
 
@@ -31,11 +31,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
               name="q"
               defaultValue={searchParams.q ?? ""}
               placeholder="Search companies..."
-              className="min-w-[240px] flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-dim focus:border-mint/40 focus:outline-none"
+              className="min-w-[240px] flex-1 rounded-xl border border-navy/10 bg-white px-4 py-2.5 text-sm text-navy placeholder:text-slate-dim focus:border-mint/40 focus:outline-none"
             />
             <button
               type="submit"
-              className="rounded-xl bg-mint px-4 py-2.5 text-sm font-semibold text-navy hover:bg-mint-glow"
+              className="rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy/90"
             >
               Search
             </button>
@@ -43,14 +43,18 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
           <IntelPanel title={`${data.total.toLocaleString("fr-MA")} companies`}>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
+              <table className="w-full min-w-[1100px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-xs uppercase tracking-wide text-slate-dim">
+                  <tr className="border-b border-navy/8 text-xs uppercase tracking-wide text-slate-dim">
                     {[
                       "Company",
                       "Active Jobs",
                       "Historical",
                       "Quality",
+                      "Employer Health",
+                      "Activation",
+                      "Validation",
+                      "Last Validation",
                       "Last Crawl",
                       "Skill Density",
                       "Experience",
@@ -63,35 +67,47 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-navy/6">
                   {data.items.map((row) => (
-                    <tr key={row.id} className="hover:bg-white/[0.02]">
+                    <tr key={row.id} className="hover:bg-[#FAFBFC]">
                       <td className="px-3 py-3">
                         <Link
                           href={`/admin/intelligence/companies/${row.slug}`}
-                          className="font-medium text-white hover:text-mint"
+                          className="font-medium text-navy hover:text-mint-dim"
                         >
                           {row.name}
                         </Link>
                       </td>
-                      <td className="px-3 py-3 tabular-nums text-white">{row.activeJobs}</td>
-                      <td className="px-3 py-3 tabular-nums text-slate-muted">
+                      <td className="px-3 py-3 tabular-nums text-navy">{row.activeJobs}</td>
+                      <td className="px-3 py-3 tabular-nums text-slate-dim">
                         {row.historicalJobs}
                       </td>
-                      <td className="px-3 py-3 tabular-nums text-white">
+                      <td className="px-3 py-3 tabular-nums text-navy">
                         {formatScore(row.qualityScore)}
                       </td>
-                      <td className="px-3 py-3 text-slate-muted">
+                      <td className="px-3 py-3 tabular-nums text-navy">
+                        {formatScore(row.employerHealth)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <IntelActivationBadge state={row.activationState} />
+                      </td>
+                      <td className="px-3 py-3 tabular-nums text-navy">
+                        {formatScore(row.validationScore)}
+                      </td>
+                      <td className="px-3 py-3 text-slate-dim">
+                        {formatRelativeTime(row.lastValidationAt)}
+                      </td>
+                      <td className="px-3 py-3 text-slate-dim">
                         {formatRelativeTime(row.lastCrawlAt)}
                       </td>
-                      <td className="px-3 py-3 tabular-nums text-slate-muted">
+                      <td className="px-3 py-3 tabular-nums text-slate-dim">
                         {row.skillDensity != null ? formatPercent(row.skillDensity) : "—"}
                       </td>
-                      <td className="px-3 py-3 tabular-nums text-slate-muted">
+                      <td className="px-3 py-3 tabular-nums text-slate-dim">
                         {row.experienceDensity != null ? formatPercent(row.experienceDensity) : "—"}
                       </td>
-                      <td className="px-3 py-3 text-slate-muted">{row.headquartersCity ?? "—"}</td>
-                      <td className="px-3 py-3 text-slate-muted">{row.industry ?? row.sector ?? "—"}</td>
+                      <td className="px-3 py-3 text-slate-dim">{row.headquartersCity ?? "—"}</td>
+                      <td className="px-3 py-3 text-slate-dim">{row.industry ?? row.sector ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -108,8 +124,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     }`}
                     className={`rounded-lg px-3 py-1.5 text-sm ${
                       p === page
-                        ? "bg-mint text-navy font-semibold"
-                        : "bg-white/8 text-slate-muted hover:text-white"
+                        ? "bg-navy text-white font-semibold"
+                        : "bg-navy/5 text-slate-dim hover:text-navy"
                     }`}
                   >
                     {p}

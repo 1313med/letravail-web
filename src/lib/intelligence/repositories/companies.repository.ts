@@ -22,7 +22,7 @@ export async function searchCompanies(params: CompaniesQuery = {}) {
       }
     : {};
 
-  const [total, companies] = await Promise.all([
+  const [total, companies, atsRecords] = await Promise.all([
     prisma.company.count({ where }),
     prisma.company.findMany({
       where,
@@ -42,10 +42,24 @@ export async function searchCompanies(params: CompaniesQuery = {}) {
         },
       },
     }),
+    prisma.employerAtsIntelligence.findMany({
+      orderBy: { probedAt: "desc" },
+      distinct: ["companyName"],
+      select: {
+        companyName: true,
+        activationState: true,
+        healthScore: true,
+        validationScore: true,
+        lastValidationAt: true,
+      },
+    }),
   ]);
+
+  const atsMap = new Map(atsRecords.map((r) => [r.companyName.toLowerCase(), r]));
 
   const items: CompanyIntelligenceRow[] = companies.map((c) => {
     const jobs = c.jobs;
+    const ats = atsMap.get(c.name.toLowerCase());
     const qualityScores = jobs.map((j) => j.qualityScore).filter((v): v is number => v != null);
     const avgQuality =
       qualityScores.length > 0
@@ -76,6 +90,10 @@ export async function searchCompanies(params: CompaniesQuery = {}) {
       careerPageUrl: c.careerPageUrl,
       linkedinUrl: c.linkedinUrl,
       websiteUrl: c.websiteUrl,
+      employerHealth: ats?.healthScore ?? null,
+      activationState: ats?.activationState ?? null,
+      validationScore: ats?.validationScore ?? null,
+      lastValidationAt: ats?.lastValidationAt?.toISOString() ?? null,
     };
   });
 
@@ -106,9 +124,25 @@ export async function getCompanyBySlug(slug: string) {
 
   if (!company) return null;
 
+  const atsRecord = await prisma.employerAtsIntelligence.findFirst({
+    where: { companyName: company.name },
+    orderBy: { probedAt: "desc" },
+    select: {
+      activationState: true,
+      healthScore: true,
+      validationScore: true,
+      lastValidationAt: true,
+      automaticActivation: true,
+      activationReason: true,
+      deactivationReason: true,
+      retryCount: true,
+      nextRetryAt: true,
+    },
+  });
+
   const growth = await getCompanyGrowth(slug, 90);
 
-  return { company, growth };
+  return { company, growth, activation: atsRecord };
 }
 
 async function getCompanyGrowth(slug: string, days: number): Promise<TrendPoint[]> {

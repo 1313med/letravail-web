@@ -36,13 +36,13 @@ export function IntelligenceSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-white/8 bg-[#050d18]/80 backdrop-blur-xl">
-      <div className="border-b border-white/8 px-5 py-6">
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-navy/8 bg-white">
+      <div className="border-b border-navy/8 px-5 py-6">
         <Link href="/admin/intelligence" className="group block">
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-mint/80">
+          <p className="text-xs font-medium uppercase tracking-widest text-mint-dim">
             Letravail.ma
           </p>
-          <h1 className="mt-1 text-sm font-semibold text-white group-hover:text-mint transition-colors">
+          <h1 className="mt-1 text-sm font-semibold text-navy group-hover:text-mint-dim transition-colors">
             Employment Intelligence
           </h1>
         </Link>
@@ -55,23 +55,23 @@ export function IntelligenceSidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 active
-                  ? "bg-mint/10 text-mint shadow-[inset_0_0_0_1px_rgba(55,214,181,0.25)]"
-                  : "text-slate-muted hover:bg-white/5 hover:text-white"
+                  ? "bg-navy text-white shadow-sm"
+                  : "text-slate-dim hover:bg-navy/5 hover:text-navy"
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0 opacity-80" />
+              <Icon className={`h-4 w-4 shrink-0 ${active ? "text-mint" : "opacity-70"}`} />
               {label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-white/8 px-5 py-4">
+      <div className="border-t border-navy/8 px-5 py-4">
         <Link
           href="/admin/seo-dashboard"
-          className="flex items-center gap-2 text-xs text-slate-dim hover:text-mint transition-colors"
+          className="flex items-center gap-2 text-xs text-slate-dim hover:text-navy transition-colors"
         >
           <Globe2 className="h-3.5 w-3.5" />
           SEO Dashboard
@@ -86,25 +86,36 @@ export function IntelligenceShell({
   title,
   subtitle,
   actions,
+  updatedAt,
 }: {
   children: ReactNode;
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  updatedAt?: string;
 }) {
   return (
-    <div className="flex min-h-screen bg-[#030912] text-slate-text">
+    <div className="flex min-h-screen bg-[#F7F9FC] text-navy">
       <IntelligenceSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 border-b border-white/8 bg-[#030912]/90 px-6 py-5 backdrop-blur-xl lg:px-8">
+        <header className="sticky top-0 z-20 border-b border-navy/8 bg-[#F7F9FC]/95 px-6 py-6 backdrop-blur-sm lg:px-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-mint/70">
-                Intelligence Center
+              <p className="text-xs font-medium uppercase tracking-widest text-mint-dim">
+                Centre de commande — Intelligence emploi
               </p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">{title}</h1>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy sm:text-3xl">
+                {title}
+              </h1>
               {subtitle && (
-                <p className="mt-1 max-w-3xl text-sm text-slate-muted">{subtitle}</p>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-dim">
+                  {subtitle}
+                </p>
+              )}
+              {updatedAt && (
+                <p className="mt-2 text-xs text-slate-dim">
+                  Dernière mise à jour : {updatedAt}
+                </p>
               )}
             </div>
             {actions}
@@ -123,7 +134,7 @@ export function IntelligenceMobileNav() {
   );
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#050d18]/95 backdrop-blur-xl lg:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-navy/10 bg-white/95 backdrop-blur-sm shadow-[0_-4px_24px_rgba(6,23,47,0.08)] lg:hidden">
       <div className="flex overflow-x-auto scrollbar-hide px-2 py-2">
         {NAV.slice(0, 6).map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
@@ -131,18 +142,18 @@ export function IntelligenceMobileNav() {
             <Link
               key={href}
               href={href}
-              className={`flex min-w-[4.5rem] flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] ${
-                active ? "text-mint" : "text-slate-dim"
+              className={`flex min-w-[4.5rem] flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-medium ${
+                active ? "text-navy" : "text-slate-dim"
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={`h-4 w-4 ${active ? "text-mint-dim" : ""}`} />
               <span className="truncate">{label.split(" ")[0]}</span>
             </Link>
           );
         })}
       </div>
       {current && (
-        <p className="border-t border-white/5 px-4 py-1 text-center text-[10px] text-slate-dim">
+        <p className="border-t border-navy/6 px-4 py-1 text-center text-[10px] text-slate-dim">
           {current.label}
         </p>
       )}

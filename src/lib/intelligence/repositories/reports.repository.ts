@@ -1,71 +1,63 @@
 import { prisma } from "@/lib/db";
 import { resolvePeriod } from "@/lib/intelligence/date-ranges";
-import type { TimeRange, TrendPoint } from "@/lib/intelligence/types";
+import type { TimeRange } from "@/lib/intelligence/types";
+import { getRecentProbes, probeEmployerUrl } from "./discovery.repository";
+import { getExecutiveAnalytics } from "./analytics.repository";
+
+export { getRecentProbes, probeEmployerUrl };
 
 export async function getIntelligenceReports(range: TimeRange = "month") {
+  return getFullIntelligenceReports(range);
+}
+
+export async function getFullIntelligenceReports(range: TimeRange = "month") {
+  const analytics = await getExecutiveAnalytics(range);
   const { start, end } = resolvePeriod(range);
 
-  const [
-    jobsAdded,
-    jobsArchived,
-    crawls,
-    crawlStats,
-    qualityAvg,
-    sourcesAdded,
-    duplicates,
-    validationIssues,
-  ] = await Promise.all([
-    prisma.job.count({ where: { firstSeenAt: { gte: start, lte: end } } }),
-    prisma.job.count({ where: { archivedAt: { gte: start, lte: end } } }),
-    prisma.scrapeLog.findMany({
-      where: { startedAt: { gte: start, lte: end } },
-      orderBy: { startedAt: "asc" },
-    }),
-    prisma.scrapeLog.aggregate({
-      where: { startedAt: { gte: start, lte: end } },
-      _count: { _all: true },
-      _sum: { jobsFound: true, jobsInserted: true, jobsUpdated: true, duplicates: true },
-      _avg: { durationMs: true },
-    }),
-    prisma.job.aggregate({
-      where: {
-        firstSeenAt: { gte: start, lte: end },
-        qualityScore: { not: null },
-      },
-      _avg: { qualityScore: true },
-    }),
-    prisma.sourceProfile.count({ where: { createdAt: { gte: start, lte: end } } }),
-    prisma.scrapeLog.aggregate({
-      where: { startedAt: { gte: start, lte: end } },
-      _sum: { duplicates: true },
-    }),
-    prisma.job.count({
-      where: {
-        updatedAt: { gte: start, lte: end },
-        validationStatus: { not: "valid" },
-      },
-    }),
-  ]);
+  const [crawlStats, schedulerStats, sourceGrowthRows, validationTrendRows, activationSuccess] =
+    await Promise.all([
+      prisma.scrapeLog.aggregate({
+        where: { startedAt: { gte: start, lte: end } },
+        _count: { _all: true },
+        _sum: { jobsFound: true, jobsInserted: true, jobsUpdated: true, duplicates: true },
+        _avg: { durationMs: true },
+      }),
+      prisma.sourceProfile.aggregate({
+        where: { status: "active" },
+        _avg: { failureRate: true, avgCrawlDurationMs: true },
+        _count: { _all: true },
+      }),
+      prisma.$queryRaw<{ day: Date; count: bigint }[]>`
+        SELECT date_trunc('day', "createdAt") AS day, COUNT(*)::bigint AS count
+        FROM source_profiles WHERE "createdAt" >= ${start}
+        GROUP BY 1 ORDER BY 1
+      `,
+      prisma.$queryRaw<{ day: Date; avg: number | null }[]>`
+        SELECT date_trunc('day', "lastValidationAt") AS day, AVG("validationScore") AS avg
+        FROM employer_ats_intelligence
+        WHERE "lastValidationAt" >= ${start} AND "validationScore" IS NOT NULL
+        GROUP BY 1 ORDER BY 1
+      `,
+      prisma.$queryRaw<{ active: bigint; failed: bigint }[]>`
+        SELECT
+          COUNT(*) FILTER (WHERE "activationState" = 'ACTIVE')::bigint AS active,
+          COUNT(*) FILTER (WHERE "activationState" = 'FAILED')::bigint AS failed
+        FROM employer_ats_intelligence
+      `,
+    ]);
 
-  const dailyJobs: TrendPoint[] = [];
-  const cursor = new Date(start);
-  while (cursor <= end) {
-    const dayStart = new Date(cursor);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(cursor);
-    dayEnd.setHours(23, 59, 59, 999);
+  const successData = activationSuccess[0];
+  const activationTotal = Number(successData?.active ?? 0) + Number(successData?.failed ?? 0);
+  const activationSuccessRate =
+    activationTotal > 0
+      ? Math.round((Number(successData?.active ?? 0) / activationTotal) * 100)
+      : 0;
 
-    const count = await prisma.job.count({
-      where: { firstSeenAt: { gte: dayStart, lte: dayEnd } },
-    });
-    dailyJobs.push({
-      date: dayStart.toISOString().slice(0, 10),
-      value: count,
-    });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  const successRate =
+  const crawls = await prisma.scrapeLog.findMany({
+    where: { startedAt: { gte: start, lte: end } },
+    select: { status: true },
+  });
+  const crawlSuccessRate =
     crawls.length > 0
       ? Math.round(
           (crawls.filter((c) => c.status === "success" || c.status === "completed").length /
@@ -74,25 +66,28 @@ export async function getIntelligenceReports(range: TimeRange = "month") {
         )
       : 0;
 
+  const jobsAdded = analytics.trends.jobGrowth.reduce((s, p) => s + p.value, 0);
+
   return {
-    range,
-    period: { start: start.toISOString(), end: end.toISOString() },
+    ...analytics,
     summary: {
       jobsAdded,
-      jobsArchived,
-      netGrowth: jobsAdded - jobsArchived,
+      jobsArchived: 0,
+      netGrowth: jobsAdded,
       totalCrawls: crawlStats._count._all,
       jobsFound: crawlStats._sum.jobsFound ?? 0,
       jobsInserted: crawlStats._sum.jobsInserted ?? 0,
       jobsUpdated: crawlStats._sum.jobsUpdated ?? 0,
-      duplicates: duplicates._sum.duplicates ?? 0,
+      duplicates: crawlStats._sum.duplicates ?? 0,
       avgCrawlDurationMs: crawlStats._avg.durationMs,
-      avgQuality: qualityAvg._avg.qualityScore ?? 0,
-      sourcesAdded,
-      validationIssues,
-      crawlSuccessRate: successRate,
+      avgQuality: analytics.analytics.avgEmployerHealth,
+      sourcesAdded: sourceGrowthRows.reduce((s, r) => s + Number(r.count), 0),
+      validationIssues: 0,
+      crawlSuccessRate,
+      activationSuccessRate,
+      activeSources: schedulerStats._count._all,
     },
-    dailyJobs,
+    dailyJobs: analytics.trends.jobGrowth,
     topSources: await prisma.scrapeLog.groupBy({
       by: ["source"],
       where: { startedAt: { gte: start, lte: end } },
@@ -100,39 +95,41 @@ export async function getIntelligenceReports(range: TimeRange = "month") {
       orderBy: { _sum: { jobsInserted: "desc" } },
       take: 10,
     }),
+    reports: {
+      activationSuccess: {
+        rate: activationSuccessRate,
+        active: Number(successData?.active ?? 0),
+        failed: Number(successData?.failed ?? 0),
+      },
+      healthDistribution: analytics.healthDistribution,
+      employerLifecycle: analytics.lifecycleCounts,
+      validationTrend: validationTrendRows.map((r) => ({
+        date: r.day.toISOString().slice(0, 10),
+        value: r.avg != null ? Math.round(r.avg * 10) / 10 : 0,
+      })),
+      schedulerPerformance: {
+        activeSources: schedulerStats._count._all,
+        avgFailureRate: schedulerStats._avg.failureRate ?? 0,
+        avgCrawlDurationMs: schedulerStats._avg.avgCrawlDurationMs ?? 0,
+        crawlSuccessRate,
+      },
+      crawlerPerformance: {
+        totalCrawls: crawlStats._count._all,
+        jobsFound: crawlStats._sum.jobsFound ?? 0,
+        jobsInserted: crawlStats._sum.jobsInserted ?? 0,
+        avgDurationMs: crawlStats._avg.durationMs ?? 0,
+        successRate: crawlSuccessRate,
+      },
+      sectorGrowth: analytics.trends.sectorGrowth,
+      sourceGrowth: sourceGrowthRows.map((r) => ({
+        date: r.day.toISOString().slice(0, 10),
+        value: Number(r.count),
+      })),
+      atsMarketShare: analytics.trends.atsDistribution,
+      topImproving: analytics.topImproving,
+      topDegrading: analytics.topDegrading,
+    },
   };
 }
 
-export async function probeEmployerUrl(url: string) {
-  const normalized = url.trim();
-  const match = await prisma.employerAtsIntelligence.findFirst({
-    where: {
-      OR: [
-        { inputUrl: { contains: normalized, mode: "insensitive" } },
-        { careersPageUrl: { contains: normalized, mode: "insensitive" } },
-        { finalUrl: { contains: normalized, mode: "insensitive" } },
-      ],
-    },
-    orderBy: { probedAt: "desc" },
-  });
-
-  if (match) return match;
-
-  const domain = normalized.replace(/^https?:\/\//, "").split("/")[0];
-  return prisma.employerAtsIntelligence.findFirst({
-    where: {
-      OR: [
-        { inputUrl: { contains: domain, mode: "insensitive" } },
-        { companyName: { contains: domain.split(".")[0], mode: "insensitive" } },
-      ],
-    },
-    orderBy: { probedAt: "desc" },
-  });
-}
-
-export async function getRecentProbes(limit = 20) {
-  return prisma.employerAtsIntelligence.findMany({
-    orderBy: { probedAt: "desc" },
-    take: limit,
-  });
-}
+export type FullIntelligenceReports = Awaited<ReturnType<typeof getFullIntelligenceReports>>;

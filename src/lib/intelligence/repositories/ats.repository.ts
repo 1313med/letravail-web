@@ -77,6 +77,15 @@ export async function getAtsIntelligence(params: AtsQuery = {}) {
     health: resolveHealth(r),
     robotsAllowed: r.robotsAllowed,
     authRequired: r.authRequired,
+    activationState: r.activationState,
+    activationReason: r.activationReason,
+    deactivationReason: r.deactivationReason,
+    healthScore: r.healthScore,
+    validationScore: r.validationScore,
+    automaticActivation: r.automaticActivation,
+    retryCount: r.retryCount,
+    nextRetryAt: r.nextRetryAt?.toISOString() ?? null,
+    lastValidationAt: r.lastValidationAt?.toISOString() ?? null,
   }));
 
   return {
@@ -95,8 +104,168 @@ export async function getAtsById(id: string) {
   return prisma.employerAtsIntelligence.findUnique({ where: { id } });
 }
 
+type HistoryEvent = {
+  at: string;
+  type: string;
+  label: string;
+  detail?: string;
+  score?: number | null;
+};
+
+function parseJsonHistory(value: unknown, type: string): HistoryEvent[] {
+  if (!value || typeof value !== "object") return [];
+  const obj = value as Record<string, unknown>;
+  const list = obj.history ?? obj.events ?? obj.entries;
+  if (!Array.isArray(list)) return [];
+  const events: HistoryEvent[] = [];
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const e = item as Record<string, unknown>;
+    const at = e.at ?? e.timestamp ?? e.date;
+    if (!at) continue;
+    events.push({
+      at: new Date(String(at)).toISOString(),
+      type,
+      label: String(e.label ?? e.type ?? type),
+      detail: e.reason ? String(e.reason) : e.detail ? String(e.detail) : undefined,
+      score: typeof e.score === "number" ? e.score : null,
+    });
+  }
+  return events;
+}
+
+function buildSyntheticHistories(record: NonNullable<Awaited<ReturnType<typeof getAtsById>>>) {
+  const healthHistory: HistoryEvent[] = [
+    ...parseJsonHistory(record.validationSummary, "health"),
+    ...(record.lastHealthCheck
+      ? [
+          {
+            at: record.lastHealthCheck.toISOString(),
+            type: "health",
+            label: "Health check",
+            score: record.healthScore,
+          },
+        ]
+      : []),
+  ];
+
+  const validationHistory: HistoryEvent[] = [
+    ...(record.lastValidationAt
+      ? [
+          {
+            at: record.lastValidationAt.toISOString(),
+            type: "validation",
+            label: "Validation completed",
+            score: record.validationScore,
+            detail: record.validationSummary ? "See validation summary" : undefined,
+          },
+        ]
+      : []),
+  ];
+
+  const retryHistory: HistoryEvent[] = [
+    ...(record.nextRetryAt
+      ? [
+          {
+            at: record.nextRetryAt.toISOString(),
+            type: "retry",
+            label: `Retry scheduled (#${record.retryCount})`,
+          },
+        ]
+      : []),
+  ];
+
+  const activationHistory: HistoryEvent[] = [
+    {
+      at: record.probedAt.toISOString(),
+      type: "probe",
+      label: "Employer probed",
+      detail: `${record.atsPlatform} · ${Math.round(record.confidence * 100)}% confidence`,
+    },
+    ...(record.activationReason
+      ? [
+          {
+            at: record.updatedAt.toISOString(),
+            type: "activation",
+            label: "Activated",
+            detail: record.activationReason,
+          },
+        ]
+      : []),
+    ...(record.deactivationReason
+      ? [
+          {
+            at: record.updatedAt.toISOString(),
+            type: "deactivation",
+            label: "Deactivated",
+            detail: record.deactivationReason,
+          },
+        ]
+      : []),
+  ];
+
+  const sortDesc = (a: HistoryEvent, b: HistoryEvent) =>
+    new Date(b.at).getTime() - new Date(a.at).getTime();
+
+  return {
+    healthHistory: healthHistory.sort(sortDesc),
+    validationHistory: validationHistory.sort(sortDesc),
+    retryHistory: retryHistory.sort(sortDesc),
+    activationHistory: activationHistory.sort(sortDesc),
+  };
+}
+
+export async function getAtsOperationalDetail(id: string) {
+  const record = await getAtsById(id);
+  if (!record) return null;
+
+  const recentCrawls = record.sourceName
+    ? await prisma.scrapeLog.findMany({
+        where: { source: record.sourceName },
+        orderBy: { startedAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          status: true,
+          startedAt: true,
+          durationMs: true,
+          jobsFound: true,
+          errorMessage: true,
+        },
+      })
+    : [];
+
+  const apiStatus =
+    record.apiEndpoints.length > 0
+      ? record.confidence >= 0.7
+        ? "detected"
+        : "uncertain"
+      : record.crawlStrategy.toLowerCase().includes("html")
+        ? "html-only"
+        : "none";
+
+  return {
+    ...record,
+    probedAt: record.probedAt.toISOString(),
+    nextRetryAt: record.nextRetryAt?.toISOString() ?? null,
+    lastValidationAt: record.lastValidationAt?.toISOString() ?? null,
+    lastHealthCheck: record.lastHealthCheck?.toISOString() ?? null,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    apiStatus,
+    recentCrawls: recentCrawls.map((c) => ({
+      ...c,
+      startedAt: c.startedAt.toISOString(),
+    })),
+    histories: buildSyntheticHistories(record),
+    validationSummary: record.validationSummary,
+    rawProbe: record.rawProbe,
+  };
+}
+
 export async function getAtsSummary() {
-  const [total, ready, investigate, avgConfidence] = await Promise.all([
+  const [total, ready, investigate, avgConfidence, avgHealth, avgValidation, activeCount] =
+    await Promise.all([
     prisma.employerAtsIntelligence.count(),
     prisma.employerAtsIntelligence.count({
       where: { onboardingStatus: { in: ["ready", "active", "onboarded"] } },
@@ -105,6 +274,15 @@ export async function getAtsSummary() {
       where: { OR: [{ issues: { isEmpty: false } }, { confidence: { lt: 0.5 } }] },
     }),
     prisma.employerAtsIntelligence.aggregate({ _avg: { confidence: true } }),
+    prisma.employerAtsIntelligence.aggregate({
+      where: { healthScore: { not: null } },
+      _avg: { healthScore: true },
+    }),
+    prisma.employerAtsIntelligence.aggregate({
+      where: { validationScore: { not: null } },
+      _avg: { validationScore: true },
+    }),
+    prisma.employerAtsIntelligence.count({ where: { activationState: "ACTIVE" } }),
   ]);
 
   return {
@@ -112,5 +290,8 @@ export async function getAtsSummary() {
     ready,
     investigate,
     avgConfidence: avgConfidence._avg.confidence ?? 0,
+    avgHealth: avgHealth._avg.healthScore ?? 0,
+    avgValidation: avgValidation._avg.validationScore ?? 0,
+    activeCount,
   };
 }

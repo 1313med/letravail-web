@@ -35,6 +35,12 @@ export type SourceRow = {
   atsPlatform: string | null;
   crawlStrategy: string | null;
   errorCount: number;
+  activationState: string | null;
+  healthScore: number | null;
+  validationScore: number | null;
+  automaticActivation: boolean;
+  nextRetryAt: string | null;
+  lastValidationAt: string | null;
 };
 
 export type AtsRow = {
@@ -52,6 +58,15 @@ export type AtsRow = {
   health: "ready" | "investigate" | "unknown";
   robotsAllowed: boolean;
   authRequired: boolean;
+  activationState: string | null;
+  activationReason: string | null;
+  deactivationReason: string | null;
+  healthScore: number | null;
+  validationScore: number | null;
+  automaticActivation: boolean;
+  retryCount: number;
+  nextRetryAt: string | null;
+  lastValidationAt: string | null;
 };
 
 export type CrawlActivityRow = {
@@ -87,6 +102,10 @@ export type CompanyIntelligenceRow = {
   careerPageUrl: string | null;
   linkedinUrl: string | null;
   websiteUrl: string | null;
+  employerHealth: number | null;
+  activationState: string | null;
+  validationScore: number | null;
+  lastValidationAt: string | null;
 };
 
 export type ValidationIssue = {

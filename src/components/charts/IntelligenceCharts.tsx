@@ -15,13 +15,14 @@ import type { TrendPoint } from "@/lib/intelligence/types";
 
 const tooltipStyle = {
   contentStyle: {
-    background: "#0a1628",
-    border: "1px solid rgba(255,255,255,0.1)",
+    background: "#ffffff",
+    border: "1px solid rgba(6,23,47,0.1)",
     borderRadius: "12px",
     fontSize: "12px",
-    color: "#D9E6F3",
+    color: "#06172F",
+    boxShadow: "0 4px 24px rgba(6,23,47,0.08)",
   },
-  labelStyle: { color: "#91A4B7" },
+  labelStyle: { color: "#6B8299", fontWeight: 600 },
 };
 
 function formatAxisDate(date: string) {
@@ -44,12 +45,12 @@ export function TrendAreaChart({
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <defs>
-          <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+          <linearGradient id={`grad-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.25} />
             <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+        <CartesianGrid stroke="rgba(6,23,47,0.06)" vertical={false} />
         <XAxis
           dataKey="date"
           tickFormatter={formatAxisDate}
@@ -73,7 +74,7 @@ export function TrendAreaChart({
           dataKey="value"
           stroke={color}
           strokeWidth={2}
-          fill={`url(#grad-${color})`}
+          fill={`url(#grad-${color.replace("#", "")})`}
         />
       </AreaChart>
     </ResponsiveContainer>
@@ -92,7 +93,7 @@ export function TrendBarChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+        <CartesianGrid stroke="rgba(6,23,47,0.06)" vertical={false} />
         <XAxis
           dataKey="date"
           tickFormatter={formatAxisDate}
@@ -128,11 +129,11 @@ export function HorizontalBarList({
       {top.map((item) => (
         <div key={item.name}>
           <div className="mb-1 flex items-center justify-between gap-2 text-sm">
-            <span className="truncate text-white">{item.name}</span>
-            <span className="shrink-0 tabular-nums text-slate-muted">
+            <span className="truncate font-medium text-navy">{item.name}</span>
+            <span className="shrink-0 tabular-nums text-slate-dim">
               {item.count.toLocaleString("fr-MA")}
               {item.delta != null && item.delta !== 0 && (
-                <span className={item.delta > 0 ? " text-emerald-400" : " text-red-400"}>
+                <span className={item.delta > 0 ? " text-emerald-600" : " text-red-600"}>
                   {" "}
                   {item.delta > 0 ? "+" : ""}
                   {item.delta}
@@ -140,9 +141,9 @@ export function HorizontalBarList({
               )}
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+          <div className="h-1.5 overflow-hidden rounded-full bg-navy/8">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-mint/80 to-mint transition-all duration-700"
+              className="h-full rounded-full bg-gradient-to-r from-mint to-mint-dim transition-all duration-700"
               style={{ width: `${(item.count / max) * 100}%` }}
             />
           </div>
@@ -163,6 +164,7 @@ export function CoverageDonut({
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">
       <svg viewBox="0 0 36 36" className="h-32 w-32 -rotate-90">
+        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#EEF4FA" strokeWidth="3.2" />
         {segments.map((seg) => {
           const pct = (seg.value / total) * 100;
           const dash = `${pct} ${100 - pct}`;
@@ -188,8 +190,8 @@ export function CoverageDonut({
         {segments.map((seg) => (
           <div key={seg.label} className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full" style={{ background: seg.color }} />
-            <span className="text-slate-muted">{seg.label}</span>
-            <span className="ml-auto tabular-nums text-white">
+            <span className="text-slate-dim">{seg.label}</span>
+            <span className="ml-auto tabular-nums font-medium text-navy">
               {Math.round((seg.value / total) * 100)}%
             </span>
           </div>

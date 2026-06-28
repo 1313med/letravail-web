@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
-import { IntelBadge, IntelPanel, IntelTable } from "@/components/intelligence/ui";
+import {
+  IntelActivationBadge,
+  IntelBadge,
+  IntelPanel,
+  IntelPrimaryButton,
+  IntelSearchInput,
+  IntelSelect,
+  IntelTable,
+} from "@/components/intelligence/ui";
 import { formatPercent, formatRelativeTime, formatScore } from "@/lib/intelligence/formatters";
 import type { SourceRow } from "@/lib/intelligence/types";
 
@@ -19,11 +27,13 @@ export function SourcesTable({
   statuses,
   initialSearch,
   initialStatus,
+  initialFilter = "",
 }: {
   data: SourcesData;
   statuses: { status: string; count: number }[];
   initialSearch: string;
   initialStatus: string;
+  initialFilter?: string;
   initialSort?: string;
   initialOrder?: "asc" | "desc";
 }) {
@@ -64,21 +74,56 @@ export function SourcesTable({
 
   const totalPages = Math.ceil(data.total / data.pageSize);
 
+  const QUICK_FILTERS = [
+    { id: "active", label: "Only ACTIVE" },
+    { id: "ready", label: "Only READY" },
+    { id: "retry", label: "Needs Retry" },
+    { id: "validation", label: "Needs Validation" },
+    { id: "lowHealth", label: "Health Below 60" },
+    { id: "failed", label: "Failed Sources" },
+  ] as const;
+
   return (
     <div className="space-y-4 pb-20 lg:pb-6">
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => updateParams({ filter: undefined, page: "1" })}
+          className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+            !initialFilter
+              ? "bg-navy text-white shadow-sm"
+              : "bg-navy/5 text-slate-dim hover:text-navy"
+          }`}
+        >
+          All sources
+        </button>
+        {QUICK_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => updateParams({ filter: f.id, page: "1" })}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              initialFilter === f.id
+                ? "bg-navy text-white shadow-sm"
+                : "bg-navy/5 text-slate-dim hover:text-navy"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap gap-3">
-        <input
+        <IntelSearchInput
           type="search"
           placeholder="Search sources..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && updateParams({ q: search, page: "1" })}
-          className="min-w-[240px] flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-dim focus:border-mint/40 focus:outline-none focus:ring-2 focus:ring-mint/20"
         />
-        <select
+        <IntelSelect
           value={initialStatus}
           onChange={(e) => updateParams({ status: e.target.value || undefined, page: "1" })}
-          className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-mint/40 focus:outline-none"
         >
           <option value="">All statuses</option>
           {statuses.map((s) => (
@@ -86,25 +131,30 @@ export function SourcesTable({
               {s.status} ({s.count})
             </option>
           ))}
-        </select>
-        <button
-          type="button"
+        </IntelSelect>
+        <IntelPrimaryButton
           onClick={() => updateParams({ q: search, page: "1" })}
           disabled={pending}
-          className="rounded-xl bg-mint px-4 py-2.5 text-sm font-semibold text-navy hover:bg-mint-glow disabled:opacity-50"
         >
           Search
-        </button>
+        </IntelPrimaryButton>
       </div>
 
       <IntelPanel
         title={`${data.total.toLocaleString("fr-MA")} sources`}
         subtitle={`Page ${data.page} of ${totalPages || 1}`}
+        accent="blue"
       >
         <IntelTable
           headers={[
             "Source",
             "Status",
+            "Activation",
+            "Health",
+            "Validation",
+            "Auto",
+            "Next Retry",
+            "Last Validation",
             "Jobs",
             "Last Crawl",
             "Quality",
@@ -118,9 +168,9 @@ export function SourcesTable({
           ]}
         >
           {data.items.map((row) => (
-            <tr key={row.id} className="hover:bg-white/[0.02]">
+            <tr key={row.id} className="hover:bg-navy/[0.02]">
               <td className="px-3 py-3">
-                <p className="font-medium text-white">{row.sourceName}</p>
+                <p className="font-medium text-navy">{row.sourceName}</p>
                 <p className="text-xs text-slate-dim">{row.companyName}</p>
               </td>
               <td className="px-3 py-3">
@@ -128,32 +178,52 @@ export function SourcesTable({
                   {row.status}
                 </IntelBadge>
               </td>
-              <td className="px-3 py-3 tabular-nums text-white">{row.activeJobs}</td>
-              <td className="px-3 py-3 text-slate-muted">
+              <td className="px-3 py-3">
+                <IntelActivationBadge state={row.activationState} />
+              </td>
+              <td className="px-3 py-3 tabular-nums text-navy">
+                {formatScore(row.healthScore)}
+              </td>
+              <td className="px-3 py-3 tabular-nums text-navy">
+                {formatScore(row.validationScore)}
+              </td>
+              <td className="px-3 py-3">
+                <IntelBadge tone={row.automaticActivation ? "good" : "neutral"}>
+                  {row.automaticActivation ? "Yes" : "No"}
+                </IntelBadge>
+              </td>
+              <td className="px-3 py-3 text-slate-dim">
+                {formatRelativeTime(row.nextRetryAt)}
+              </td>
+              <td className="px-3 py-3 text-slate-dim">
+                {formatRelativeTime(row.lastValidationAt)}
+              </td>
+              <td className="px-3 py-3 tabular-nums text-navy">{row.activeJobs}</td>
+              <td className="px-3 py-3 text-slate-dim">
                 {formatRelativeTime(row.lastCrawlAt)}
               </td>
-              <td className="px-3 py-3 tabular-nums text-white">
+              <td className="px-3 py-3 tabular-nums text-navy">
                 {formatScore(row.intelligenceScore)}
               </td>
-              <td className="px-3 py-3 tabular-nums text-white">
+              <td className="px-3 py-3 tabular-nums text-navy">
                 {formatScore(row.freshnessScore)}
               </td>
-              <td className="px-3 py-3 tabular-nums text-slate-muted">
+              <td className="px-3 py-3 tabular-nums text-slate-dim">
                 {row.avgDescriptionLength ?? "—"}
               </td>
-              <td className="px-3 py-3 tabular-nums text-slate-muted">
+              <td className="px-3 py-3 tabular-nums text-slate-dim">
                 {row.failureRate != null ? formatPercent(row.failureRate * 100) : "—"}
               </td>
-              <td className="px-3 py-3 tabular-nums text-red-400">{row.errorCount}</td>
-              <td className="px-3 py-3 tabular-nums text-mint">
+              <td className="px-3 py-3 tabular-nums text-red-600">{row.errorCount}</td>
+              <td className="px-3 py-3 tabular-nums font-medium text-mint-dim">
                 {formatScore(row.priorityScore)}
               </td>
-              <td className="px-3 py-3 text-xs text-slate-muted">{row.atsPlatform ?? "—"}</td>
+              <td className="px-3 py-3 text-xs text-slate-dim">{row.atsPlatform ?? "—"}</td>
               <td className="px-3 py-3">
                 <div className="flex flex-wrap gap-1.5">
                   <Link
                     href={`/admin/intelligence/crawl?source=${encodeURIComponent(row.sourceName)}`}
-                    className="rounded-md bg-white/8 px-2 py-1 text-xs text-white hover:bg-white/12"
+                    className="rounded-md border border-navy/10 bg-white px-2 py-1 text-xs font-medium text-navy hover:bg-navy/5"
                   >
                     Logs
                   </Link>
@@ -162,7 +232,7 @@ export function SourcesTable({
                       type="button"
                       disabled={disabling === row.sourceName}
                       onClick={() => handleDisable(row.sourceName)}
-                      className="rounded-md bg-red-500/15 px-2 py-1 text-xs text-red-400 hover:bg-red-500/25 disabled:opacity-50"
+                      className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
                     >
                       Disable
                     </button>
@@ -180,10 +250,10 @@ export function SourcesTable({
                 key={p}
                 type="button"
                 onClick={() => updateParams({ page: String(p) })}
-                className={`rounded-lg px-3 py-1.5 text-sm ${
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   p === data.page
-                    ? "bg-mint text-navy font-semibold"
-                    : "bg-white/8 text-slate-muted hover:text-white"
+                    ? "bg-navy text-white"
+                    : "border border-navy/10 bg-white text-slate-dim hover:bg-navy/5"
                 }`}
               >
                 {p}

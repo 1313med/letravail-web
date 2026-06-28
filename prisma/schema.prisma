@@ -174,10 +174,14 @@ model SourceProfile {
   avgDailyRemovals     Float?
   lastValidationReport Json?
   metadata             Json?
+  activationState      String?
+  healthScore          Float?
+  lastHealthUpdate     DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
   @@index([status])
+  @@index([activationState])
   @@index([nextCrawlAt])
   @@index([intelligenceScore])
   @@index([priorityScore])
@@ -214,6 +218,17 @@ model EmployerAtsIntelligence {
   probedAt              DateTime @default(now())
   probeVersion          Int      @default(1)
   rawProbe              Json?
+  activationState       String?
+  activationReason      String?
+  deactivationReason    String?
+  automaticActivation   Boolean  @default(false)
+  healthScore           Float?
+  validationScore       Float?
+  lastHealthCheck       DateTime?
+  lastValidationAt      DateTime?
+  nextRetryAt           DateTime?
+  retryCount            Int      @default(0)
+  validationSummary     Json?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -221,6 +236,8 @@ model EmployerAtsIntelligence {
   @@index([companyName])
   @@index([confidence])
   @@index([onboardingStatus])
+  @@index([activationState])
+  @@index([nextRetryAt])
   @@index([probedAt])
   @@index([sourceName])
   @@map("employer_ats_intelligence")

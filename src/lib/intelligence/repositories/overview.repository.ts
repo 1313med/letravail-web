@@ -14,6 +14,70 @@ import {
 import { bucketDates, daysAgo, endOfDay, isoDateKey, startOfDay } from "@/lib/intelligence/date-ranges";
 import type { KpiMetric, TrendPoint } from "@/lib/intelligence/types";
 
+async function getActivationMetrics(todayStart: Date, todayEnd: Date) {
+  const [
+    activeEmployers,
+    readyForActivation,
+    validationQueue,
+    retryQueue,
+    avgHealth,
+    avgValidation,
+    activeCount,
+    failedCount,
+    autoActivationsToday,
+    autoDeactivationsToday,
+  ] = await Promise.all([
+    prisma.employerAtsIntelligence.count({ where: { activationState: "ACTIVE" } }),
+    prisma.employerAtsIntelligence.count({ where: { activationState: "READY" } }),
+    prisma.employerAtsIntelligence.count({
+      where: {
+        lastValidationAt: null,
+        activationState: { in: ["PROBED", "READY", "MONITORED"] },
+      },
+    }),
+    prisma.employerAtsIntelligence.count({ where: { nextRetryAt: { not: null } } }),
+    prisma.employerAtsIntelligence.aggregate({
+      where: { healthScore: { not: null } },
+      _avg: { healthScore: true },
+    }),
+    prisma.employerAtsIntelligence.aggregate({
+      where: { validationScore: { not: null } },
+      _avg: { validationScore: true },
+    }),
+    prisma.employerAtsIntelligence.count({ where: { activationState: "ACTIVE" } }),
+    prisma.employerAtsIntelligence.count({ where: { activationState: "FAILED" } }),
+    prisma.employerAtsIntelligence.count({
+      where: {
+        automaticActivation: true,
+        activationState: "ACTIVE",
+        updatedAt: { gte: todayStart, lte: todayEnd },
+      },
+    }),
+    prisma.employerAtsIntelligence.count({
+      where: {
+        deactivationReason: { not: null },
+        updatedAt: { gte: todayStart, lte: todayEnd },
+      },
+    }),
+  ]);
+
+  const activationAttempts = activeCount + failedCount;
+  const activationSuccessRate =
+    activationAttempts > 0 ? coveragePct(activeCount, activationAttempts) : 0;
+
+  return {
+    activeEmployers,
+    readyForActivation,
+    validationQueue,
+    retryQueue,
+    avgHealthScore: avgHealth._avg.healthScore ?? 0,
+    avgValidationScore: avgValidation._avg.validationScore ?? 0,
+    activationSuccessRate,
+    autoActivationsToday,
+    autoDeactivationsToday,
+  };
+}
+
 export type OverviewCrawlRow = {
   id: string;
   source: string;
@@ -173,6 +237,7 @@ export async function getOverviewBundle(): Promise<OverviewBundle> {
     employerGrowth,
     cityGrowth,
     topProfessions,
+    activation,
   ] = await Promise.all([
     prisma.job.count({ where: activeJobWhere() }),
     prisma.company.count(),
@@ -235,6 +300,7 @@ export async function getOverviewBundle(): Promise<OverviewBundle> {
       take: 10,
       select: { profession: true, jobCount: true },
     }),
+    getActivationMetrics(todayStart, todayEnd),
   ]);
 
   const qualityScore = avgQuality._avg.qualityScore ?? 0;
@@ -251,7 +317,85 @@ export async function getOverviewBundle(): Promise<OverviewBundle> {
   const kpis: KpiMetric[] = [
     { key: "activeJobs", label: "Active Jobs", value: activeJobs, format: "number", tone: "good" },
     { key: "totalEmployers", label: "Total Employers", value: totalEmployers, format: "number" },
-    { key: "activeSources", label: "Active Sources", value: activeSources, format: "number" },
+    {
+      key: "activeSources",
+      label: "Active Sources",
+      value: activeSources,
+      format: "number",
+    },
+    {
+      key: "activeEmployers",
+      label: "Active Employers",
+      value: activation.activeEmployers,
+      format: "number",
+      tone: "good",
+    },
+    {
+      key: "readyForActivation",
+      label: "Ready For Activation",
+      value: activation.readyForActivation,
+      format: "number",
+      tone: activation.readyForActivation > 0 ? "warn" : "neutral",
+    },
+    {
+      key: "validationQueue",
+      label: "Validation Queue",
+      value: activation.validationQueue,
+      format: "number",
+      tone: activation.validationQueue > 0 ? "warn" : "neutral",
+    },
+    {
+      key: "retryQueue",
+      label: "Retry Queue",
+      value: activation.retryQueue,
+      format: "number",
+      tone: activation.retryQueue > 0 ? "warn" : "neutral",
+    },
+    {
+      key: "avgHealthScore",
+      label: "Average Health Score",
+      value: Math.round(activation.avgHealthScore * 10) / 10,
+      format: "score",
+      tone: activation.avgHealthScore >= 70 ? "good" : activation.avgHealthScore >= 50 ? "warn" : "bad",
+    },
+    {
+      key: "avgValidationScore",
+      label: "Average Validation Score",
+      value: Math.round(activation.avgValidationScore * 10) / 10,
+      format: "score",
+      tone:
+        activation.avgValidationScore >= 70
+          ? "good"
+          : activation.avgValidationScore >= 50
+            ? "warn"
+            : "bad",
+    },
+    {
+      key: "activationSuccessRate",
+      label: "Activation Success Rate",
+      value: activation.activationSuccessRate,
+      format: "percent",
+      tone:
+        activation.activationSuccessRate >= 80
+          ? "good"
+          : activation.activationSuccessRate >= 50
+            ? "warn"
+            : "bad",
+    },
+    {
+      key: "autoActivationsToday",
+      label: "Automatic Activations Today",
+      value: activation.autoActivationsToday,
+      format: "number",
+      tone: activation.autoActivationsToday > 0 ? "good" : "neutral",
+    },
+    {
+      key: "autoDeactivationsToday",
+      label: "Automatic Deactivations Today",
+      value: activation.autoDeactivationsToday,
+      format: "number",
+      tone: activation.autoDeactivationsToday > 0 ? "warn" : "neutral",
+    },
     { key: "registeredSources", label: "Registered Sources", value: registeredSources, format: "number" },
     {
       key: "jobsAddedToday",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { IntelligenceShell, IntelligenceMobileNav } from "@/components/intelligence/IntelligenceShell";
-import { IntelPanel } from "@/components/intelligence/ui";
+import { IntelBackLink, IntelPanel } from "@/components/intelligence/ui";
 import { getValidationIssueDetails } from "@/lib/intelligence";
 
 export const metadata: Metadata = {
@@ -16,6 +16,9 @@ const TITLES: Record<string, string> = {
   "invalid-jobs": "Invalid Jobs",
   "missing-descriptions": "Missing Descriptions",
   "broken-locations": "Broken Locations",
+  "duplicate-companies": "Duplicate Companies",
+  "rejected-jobs": "Jobs Rejected",
+  "broken-urls": "Broken URLs",
 };
 
 type Props = { params: { id: string } };
@@ -23,55 +26,85 @@ type Props = { params: { id: string } };
 export default async function ValidationDetailPage({ params }: Props) {
   if (!TITLES[params.id]) notFound();
 
-  const jobs = await getValidationIssueDetails(params.id);
+  const records = await getValidationIssueDetails(params.id);
 
   return (
     <>
       <IntelligenceShell
         title={TITLES[params.id]}
-        actions={
-          <Link
-            href="/admin/intelligence/validation"
-            className="rounded-lg bg-white/8 px-4 py-2 text-sm text-white hover:bg-white/12"
-          >
-            ← Back
-          </Link>
-        }
+        actions={<IntelBackLink href="/admin/intelligence/validation" label="← Back" />}
       >
-        <IntelPanel title={`${jobs.length} records`}>
+        <IntelPanel title={`${records.length} records`} accent="red">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-white/8 text-xs uppercase text-slate-dim">
-                  {["Title", "Company", "Source", "Details"].map((h) => (
-                    <th key={h} className="px-3 py-2 font-semibold">
-                      {h}
-                    </th>
-                  ))}
+                <tr className="border-b border-navy/8 text-xs uppercase text-slate-dim">
+                  {params.id === "duplicate-companies"
+                    ? ["Alias", "Company", "Confidence"].map((h) => (
+                        <th key={h} className="px-3 py-2 font-semibold">{h}</th>
+                      ))
+                    : ["Title", "Company", "Source", "Details"].map((h) => (
+                        <th key={h} className="px-3 py-2 font-semibold">{h}</th>
+                      ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
-                {jobs.map((job) => (
-                  <tr key={job.id}>
-                    <td className="px-3 py-2">
-                      {"slug" in job && job.slug ? (
-                        <Link href={`/emploi/${job.slug}`} className="text-white hover:text-mint">
-                          {job.title}
-                        </Link>
-                      ) : (
-                        job.title
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-slate-muted">{job.company}</td>
-                    <td className="px-3 py-2 text-slate-muted">{job.source}</td>
-                    <td className="px-3 py-2 text-xs text-slate-dim">
-                      {"validationStatus" in job && job.validationStatus}
-                      {"descriptionScore" in job && job.descriptionScore != null &&
-                        ` · score ${job.descriptionScore}`}
-                      {"city" in job && job.city && ` · ${job.city}`}
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-navy/6">
+                {params.id === "duplicate-companies"
+                  ? records.map((row) => {
+                      const alias = row as {
+                        id: string;
+                        alias: string;
+                        confidence: number;
+                        company: { name: string; slug: string };
+                      };
+                      return (
+                        <tr key={alias.id}>
+                          <td className="px-3 py-2 text-navy">{alias.alias}</td>
+                          <td className="px-3 py-2">
+                            <Link
+                              href={`/admin/intelligence/companies/${alias.company.slug}`}
+                              className="text-navy hover:text-mint-dim"
+                            >
+                              {alias.company.name}
+                            </Link>
+                          </td>
+                          <td className="px-3 py-2 text-slate-dim">
+                            {Math.round(alias.confidence * 100)}%
+                          </td>
+                        </tr>
+                      );
+                    })
+                  : records.map((job) => {
+                      const j = job as Record<string, unknown>;
+                      return (
+                        <tr key={String(j.id)}>
+                          <td className="px-3 py-2">
+                            {j.slug ? (
+                              <Link
+                                href={`/emploi/${j.slug}`}
+                                className="text-navy hover:text-mint-dim"
+                              >
+                                {String(j.title)}
+                              </Link>
+                            ) : (
+                              String(j.title)
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-slate-dim">{String(j.company ?? "—")}</td>
+                          <td className="px-3 py-2 text-slate-dim">{String(j.source ?? "—")}</td>
+                          <td className="px-3 py-2 text-xs text-slate-dim">
+                            {j.validationStatus != null && `Status: ${String(j.validationStatus)}`}
+                            {Array.isArray(j.validationFlags) && j.validationFlags.length > 0 &&
+                              ` · Flags: ${(j.validationFlags as string[]).join(", ")}`}
+                            {j.descriptionScore != null && ` · Desc score: ${String(j.descriptionScore)}`}
+                            {j.city != null && j.city !== "" && ` · City: ${String(j.city)}`}
+                            {j.applicationUrl != null && j.applicationUrl !== "" && (
+                              <span className="block truncate max-w-xs">{String(j.applicationUrl)}</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
               </tbody>
             </table>
           </div>

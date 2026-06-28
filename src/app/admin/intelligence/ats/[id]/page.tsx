@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { IntelligenceShell, IntelligenceMobileNav } from "@/components/intelligence/IntelligenceShell";
-import { IntelBadge, IntelPanel } from "@/components/intelligence/ui";
+import { IntelActivationBadge, IntelBackLink, IntelBadge, IntelPanel } from "@/components/intelligence/ui";
 import { getAtsById } from "@/lib/intelligence";
-import { formatDateTime, formatPercent } from "@/lib/intelligence/formatters";
+import { formatDateTime, formatPercent, formatRelativeTime, formatScore } from "@/lib/intelligence/formatters";
 
 export const metadata: Metadata = {
   title: "ATS Details — Employment Intelligence",
@@ -26,16 +25,53 @@ export default async function AtsDetailPage({ params }: Props) {
       <IntelligenceShell
         title={record.companyName}
         subtitle={`${record.atsPlatform} · ${record.crawlStrategy}`}
-        actions={
-          <Link
-            href="/admin/intelligence/ats"
-            className="rounded-lg bg-white/8 px-4 py-2 text-sm text-white hover:bg-white/12"
-          >
-            ← Back to ATS
-          </Link>
-        }
+        actions={<IntelBackLink href="/admin/intelligence/ats" label="← Back to ATS" />}
       >
         <div className="grid gap-6 pb-20 lg:pb-6 xl:grid-cols-2">
+          <IntelPanel title="Activation & Health" accent="green">
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs text-slate-dim">Activation State</dt>
+                <dd className="mt-1">
+                  <IntelActivationBadge state={record.activationState} />
+                </dd>
+              </div>
+              {[
+                ["Health Score", formatScore(record.healthScore)],
+                ["Validation Score", formatScore(record.validationScore)],
+                ["Retry Count", record.retryCount.toString()],
+                ["Next Retry", formatRelativeTime(record.nextRetryAt?.toISOString() ?? null)],
+                ["Last Validation", formatRelativeTime(record.lastValidationAt?.toISOString() ?? null)],
+                ["Last Health Check", formatRelativeTime(record.lastHealthCheck?.toISOString() ?? null)],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-xs text-slate-dim">{label}</dt>
+                  <dd className="mt-1 text-sm font-medium text-navy">{value}</dd>
+                </div>
+              ))}
+              <div>
+                <dt className="text-xs text-slate-dim">Automatic Activation</dt>
+                <dd className="mt-1">
+                  <IntelBadge tone={record.automaticActivation ? "good" : "neutral"}>
+                    {record.automaticActivation ? "Enabled" : "Manual"}
+                  </IntelBadge>
+                </dd>
+              </div>
+              {record.activationReason && (
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-slate-dim">Activation Reason</dt>
+                  <dd className="mt-1 text-sm text-navy">{record.activationReason}</dd>
+                </div>
+              )}
+              {record.deactivationReason && (
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-slate-dim">Deactivation Reason</dt>
+                  <dd className="mt-1 text-sm text-red-800">{record.deactivationReason}</dd>
+                </div>
+              )}
+            </dl>
+          </IntelPanel>
+
           <IntelPanel title="Detection Summary">
             <dl className="grid gap-4 sm:grid-cols-2">
               {[
@@ -50,7 +86,7 @@ export default async function AtsDetailPage({ params }: Props) {
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-xs text-slate-dim">{label}</dt>
-                  <dd className="mt-1 text-sm font-medium text-white">{value}</dd>
+                  <dd className="mt-1 text-sm font-medium text-navy">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -77,11 +113,11 @@ export default async function AtsDetailPage({ params }: Props) {
               </div>
               <div>
                 <p className="text-xs text-slate-dim">Pagination</p>
-                <p className="text-white">{record.paginationType ?? "—"}</p>
+                <p className="text-navy">{record.paginationType ?? "—"}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-dim">Detail Endpoint</p>
-                <p className="break-all font-mono text-xs text-slate-muted">
+                <p className="break-all font-mono text-xs text-slate-dim">
                   {record.detailEndpoint ?? "—"}
                 </p>
               </div>
@@ -94,7 +130,7 @@ export default async function AtsDetailPage({ params }: Props) {
                 {record.apiEndpoints.map((ep) => (
                   <li
                     key={ep}
-                    className="rounded-lg border border-white/8 bg-white/[0.03] px-4 py-2 font-mono text-xs text-mint break-all"
+                    className="rounded-lg border border-navy/8 bg-[#FAFBFC] px-4 py-2 font-mono text-xs text-mint-dim break-all"
                   >
                     {ep}
                   </li>
@@ -115,7 +151,7 @@ export default async function AtsDetailPage({ params }: Props) {
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-xs text-slate-dim">{label}</dt>
-                  <dd className="mt-0.5 break-all text-slate-muted">{value ?? "—"}</dd>
+                  <dd className="mt-0.5 break-all text-slate-dim">{value ?? "—"}</dd>
                 </div>
               ))}
             </dl>
@@ -123,7 +159,7 @@ export default async function AtsDetailPage({ params }: Props) {
 
           <IntelPanel title="Sitemaps">
             {record.sitemapUrls.length > 0 ? (
-              <ul className="space-y-1 text-xs text-slate-muted">
+              <ul className="space-y-1 text-xs text-slate-dim">
                 {record.sitemapUrls.map((url) => (
                   <li key={url} className="break-all">
                     {url}
@@ -141,7 +177,7 @@ export default async function AtsDetailPage({ params }: Props) {
                 {record.issues.map((issue) => (
                   <li
                     key={issue}
-                    className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm text-amber-300"
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900"
                   >
                     {issue}
                   </li>
@@ -152,7 +188,7 @@ export default async function AtsDetailPage({ params }: Props) {
 
           {config && Object.keys(config).length > 0 && (
             <IntelPanel title="Platform Config" className="xl:col-span-2">
-              <pre className="overflow-x-auto rounded-lg bg-black/30 p-4 text-xs text-slate-muted">
+              <pre className="overflow-x-auto rounded-lg border border-navy/8 bg-[#FAFBFC] p-4 text-xs text-slate-dim">
                 {JSON.stringify(config, null, 2)}
               </pre>
             </IntelPanel>

@@ -33,6 +33,10 @@ export async function POST(request: Request) {
       jsRenderingRequired: record.jsRenderingRequired,
       estimatedJobVolume: record.estimatedJobVolume,
       onboardingStatus: record.onboardingStatus,
+      activationState: record.activationState,
+      healthScore: record.healthScore,
+      validationScore: record.validationScore,
+      automaticActivation: record.automaticActivation,
       issues: record.issues,
     },
   });

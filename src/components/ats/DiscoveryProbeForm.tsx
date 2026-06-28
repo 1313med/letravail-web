@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { IntelBadge, IntelPanel } from "@/components/intelligence/ui";
+import {
+  IntelBadge,
+  IntelPanel,
+  IntelPrimaryButton,
+  IntelSearchInput,
+} from "@/components/intelligence/ui";
 import { formatPercent } from "@/lib/intelligence/formatters";
 
 type ProbeResult = {
@@ -54,23 +59,18 @@ export function DiscoveryProbeForm() {
 
   return (
     <div className="space-y-6">
-      <IntelPanel title="Probe Employer URL">
+      <IntelPanel title="Probe Employer URL" accent="blue">
         <form onSubmit={handleProbe} className="flex flex-wrap gap-3">
-          <input
+          <IntelSearchInput
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://careers.example.ma"
             required
-            className="min-w-[280px] flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-dim focus:border-mint/40 focus:outline-none focus:ring-2 focus:ring-mint/20"
           />
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-xl bg-mint px-6 py-3 text-sm font-semibold text-navy hover:bg-mint-glow disabled:opacity-50"
-          >
+          <IntelPrimaryButton type="submit" disabled={loading}>
             {loading ? "Probing..." : "Probe"}
-          </button>
+          </IntelPrimaryButton>
         </form>
         <p className="mt-2 text-xs text-slate-dim">
           Reads from employer_ats_intelligence — no scraping executed from this dashboard.
@@ -78,14 +78,14 @@ export function DiscoveryProbeForm() {
       </IntelPanel>
 
       {notFound && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           No intelligence record found for this URL. Run the scraper probe pipeline first.
         </div>
       )}
 
       {result && (
         <div className="grid gap-6 xl:grid-cols-2">
-          <IntelPanel title={result.companyName}>
+          <IntelPanel title={result.companyName} accent="green">
             <dl className="grid gap-4 sm:grid-cols-2">
               {[
                 ["Detected ATS", result.atsPlatform],
@@ -97,7 +97,7 @@ export function DiscoveryProbeForm() {
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-xs text-slate-dim">{label}</dt>
-                  <dd className="mt-1 text-sm font-medium text-white">{value}</dd>
+                  <dd className="mt-1 text-sm font-medium text-navy">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -117,14 +117,14 @@ export function DiscoveryProbeForm() {
             </div>
           </IntelPanel>
 
-          <IntelPanel title="Endpoints">
+          <IntelPanel title="Endpoints" accent="purple">
             <div className="space-y-4 text-sm">
               <div>
-                <p className="text-xs text-slate-dim">API Endpoints</p>
+                <p className="text-xs font-medium text-slate-dim">API Endpoints</p>
                 {result.apiEndpoints.length > 0 ? (
                   <ul className="mt-1 space-y-1">
                     {result.apiEndpoints.map((ep) => (
-                      <li key={ep} className="break-all font-mono text-xs text-mint">
+                      <li key={ep} className="break-all font-mono text-xs text-mint-dim">
                         {ep}
                       </li>
                     ))}
@@ -134,11 +134,11 @@ export function DiscoveryProbeForm() {
                 )}
               </div>
               <div>
-                <p className="text-xs text-slate-dim">Sitemaps</p>
+                <p className="text-xs font-medium text-slate-dim">Sitemaps</p>
                 {result.sitemapUrls.length > 0 ? (
                   <ul className="mt-1 space-y-1">
                     {result.sitemapUrls.map((s) => (
-                      <li key={s} className="break-all text-xs text-slate-muted">
+                      <li key={s} className="break-all text-xs text-slate-dim">
                         {s}
                       </li>
                     ))}
@@ -151,10 +151,13 @@ export function DiscoveryProbeForm() {
           </IntelPanel>
 
           {result.issues.length > 0 && (
-            <IntelPanel title="Issues" className="xl:col-span-2">
+            <IntelPanel title="Issues" accent="red" className="xl:col-span-2">
               <ul className="space-y-2">
                 {result.issues.map((issue) => (
-                  <li key={issue} className="text-sm text-amber-300">
+                  <li
+                    key={issue}
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900"
+                  >
                     {issue}
                   </li>
                 ))}

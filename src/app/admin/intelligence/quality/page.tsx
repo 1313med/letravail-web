@@ -55,11 +55,11 @@ export default async function QualityPage() {
                 <div className="mb-4 flex gap-6">
                   <div>
                     <p className="text-xs text-slate-dim">Score</p>
-                    <p className="text-2xl font-bold text-white">{dim.score}</p>
+                    <p className="text-2xl font-bold text-navy">{dim.score}</p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-dim">Coverage</p>
-                    <p className="text-2xl font-bold text-mint">{formatPercent(dim.coverage)}</p>
+                    <p className="text-2xl font-bold text-mint-dim">{formatPercent(dim.coverage)}</p>
                   </div>
                 </div>
                 <TrendAreaChart data={dim.trend} height={180} />
@@ -71,7 +71,7 @@ export default async function QualityPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-xs uppercase text-slate-dim">
+                  <tr className="border-b border-navy/8 text-xs uppercase text-slate-dim">
                     {["Source", "Company", "Status", "Intelligence", "Freshness", "Skills", "Avg Desc"].map(
                       (h) => (
                         <th key={h} className="px-3 py-2 font-semibold">
@@ -81,11 +81,11 @@ export default async function QualityPage() {
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-navy/6">
                   {data.bottlenecks.map((b) => (
-                    <tr key={b.source} className="hover:bg-white/[0.02]">
-                      <td className="px-3 py-3 font-medium text-white">{b.source}</td>
-                      <td className="px-3 py-3 text-slate-muted">{b.company}</td>
+                    <tr key={b.source} className="hover:bg-[#FAFBFC]">
+                      <td className="px-3 py-3 font-medium text-navy">{b.source}</td>
+                      <td className="px-3 py-3 text-slate-dim">{b.company}</td>
                       <td className="px-3 py-3">
                         <IntelBadge
                           tone={
@@ -104,7 +104,7 @@ export default async function QualityPage() {
                       <td className="px-3 py-3 tabular-nums">
                         {b.skillCoverage != null ? formatPercent(b.skillCoverage * 100) : "—"}
                       </td>
-                      <td className="px-3 py-3 tabular-nums text-slate-muted">
+                      <td className="px-3 py-3 tabular-nums text-slate-dim">
                         {b.avgDescriptionLength ?? "—"}
                       </td>
                     </tr>

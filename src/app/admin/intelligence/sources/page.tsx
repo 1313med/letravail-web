@@ -14,6 +14,7 @@ type Props = {
   searchParams: {
     q?: string;
     status?: string;
+    filter?: string;
     sort?: string;
     order?: "asc" | "desc";
     page?: string;
@@ -22,10 +23,20 @@ type Props = {
 
 export default async function SourcesPage({ searchParams }: Props) {
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const quickFilter = searchParams.filter as
+    | "active"
+    | "ready"
+    | "retry"
+    | "validation"
+    | "lowHealth"
+    | "failed"
+    | undefined;
+
   const [data, statuses] = await Promise.all([
     getSources({
       search: searchParams.q,
       status: searchParams.status,
+      quickFilter,
       sort: searchParams.sort,
       order: searchParams.order,
       page,
@@ -37,13 +48,14 @@ export default async function SourcesPage({ searchParams }: Props) {
     <>
       <IntelligenceShell
         title="Sources"
-        subtitle="Monitor every crawl source — status, quality, freshness, and priority from source_profiles."
+        subtitle="Monitor crawl sources — use quick filters to find what needs operator attention."
       >
         <SourcesTable
           data={data}
           statuses={statuses}
           initialSearch={searchParams.q ?? ""}
           initialStatus={searchParams.status ?? ""}
+          initialFilter={searchParams.filter ?? ""}
           initialSort={searchParams.sort ?? "priorityScore"}
           initialOrder={searchParams.order ?? "desc"}
         />

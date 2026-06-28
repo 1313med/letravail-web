@@ -38,14 +38,14 @@ export default async function CoveragePage() {
                 {data.cityHeatmap.map((city) => (
                   <div
                     key={city.city}
-                    className="rounded-xl border border-white/8 p-3 transition-all hover:border-mint/30"
+                    className="rounded-xl border border-navy/8 p-3 transition-all hover:border-mint/30"
                     style={{
                       background: `rgba(55, 214, 181, ${Math.min(city.intensity / 100, 0.35)})`,
                     }}
                   >
-                    <p className="text-sm font-medium text-white">{city.city}</p>
-                    <p className="text-xs text-slate-muted">{city.jobs} jobs</p>
-                    <p className="text-xs text-mint">{formatPercent(city.intensity)}</p>
+                    <p className="text-sm font-medium text-navy">{city.city}</p>
+                    <p className="text-xs text-slate-dim">{city.jobs} jobs</p>
+                    <p className="text-xs text-mint-dim">{formatPercent(city.intensity)}</p>
                   </div>
                 ))}
               </div>
@@ -91,7 +91,7 @@ export default async function CoveragePage() {
                 {data.missingSectors.map((s) => (
                   <span
                     key={s.key}
-                    className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 ring-1 ring-amber-500/20"
+                    className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-600 ring-1 ring-amber-500/20"
                   >
                     {s.label}
                   </span>

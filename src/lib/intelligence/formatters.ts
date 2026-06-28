@@ -34,6 +34,15 @@ export function formatRelativeTime(iso: string | Date | null): string {
   return date.toLocaleDateString("fr-MA", { day: "numeric", month: "short" });
 }
 
+export function formatTimeInStage(ms: number): string {
+  if (ms < 60_000) return "< 1 min";
+  const hours = Math.floor(ms / 3_600_000);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d`;
+  return `${Math.floor(days / 30)}mo`;
+}
+
 export function formatDateTime(iso: string | Date | null): string {
   if (!iso) return "—";
   const date = typeof iso === "string" ? new Date(iso) : iso;

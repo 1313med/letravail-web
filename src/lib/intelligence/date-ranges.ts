@@ -58,3 +58,18 @@ export function bucketDates(days: number, from = new Date()): string[] {
     return isoDateKey(d);
   });
 }
+
+export function rangeToDays(range: TimeRange): number {
+  switch (range) {
+    case "today":
+      return 1;
+    case "week":
+      return 7;
+    case "month":
+      return 30;
+    case "quarter":
+      return 90;
+    case "year":
+      return 365;
+  }
+}

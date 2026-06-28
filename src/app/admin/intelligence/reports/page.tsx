@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { IntelligenceShell, IntelligenceMobileNav } from "@/components/intelligence/IntelligenceShell";
 import { ReportsClient } from "@/components/intelligence/ReportsClient";
-import { getIntelligenceReports } from "@/lib/intelligence";
+import { getFullIntelligenceReports } from "@/lib/intelligence";
 import type { TimeRange } from "@/lib/intelligence/types";
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ type Props = { searchParams: { range?: TimeRange } };
 
 export default async function ReportsPage({ searchParams }: Props) {
   const range = (searchParams.range ?? "month") as TimeRange;
-  const data = await getIntelligenceReports(range);
+  const data = await getFullIntelligenceReports(range);
 
   return (
     <>
